@@ -58,8 +58,9 @@ adjacent_ops(Ds) :-
 puzzle(Solution) :-
     length(Solution, 8).
 
-min(MinMax, D, Min) :- (Min,_) = MinMax.D.
-max(MinMax, D, Max) :- (_,Max) = MinMax.D.
+% min_count(MinMax, D, Min) :- (Min,_) = MinMax.D.
+% max_count(MinMax, D, Max) :- (_,Max) = MinMax.D.
+
 no( MinMax, D) :- (0,0) = MinMax.D.
 yes(MinMax, D) :- (1,_) = MinMax.D.
 
@@ -167,18 +168,39 @@ run_puzzle2(Solution, _Guess, Guesses) =>
 display_result(Guesses, Solution) =>
     set_prolog_flag(color_term, true),
     fill_summary(unknown, Summary0),
-    display_result(Guesses, Solution, Summary0).
+    foldl(display_result(Solution), Guesses, Summary0, Summary),
+    nl,
+    display_summary(Summary).
 
-:- det(display_result/3).
-display_result([], _Solution, Summary) =>
+:- det(display_result/4).
+display_result(Solution, Guess, Summary0, Summary) =>
+    foldl(display1(Solution), Guess, Solution, Summary0, Summary).
+
+:- det(display_summary/1).
+display_summary(Summary) =>
     dict_pairs(Summary, _, SummaryPairs),
-    join(SummaryPairs, display_result_summary, write(' ')),
+    join(SummaryPairs, display_colorized, write(' ')),
     ansi_format([reset], '~n', []).
-display_result([Guess|Guesses], Solution, Summary) =>
-    display_result(Guesses, Solution, Summary).
 
-:- det(display_result_summary/1).
-display_result_summary(D-Type) =>
+:- det(display1/5).
+display1(_Solution, D, S, Summary0, Summary), D == S =>
+    display_colorized(D-correct),
+    put_dict(D, Summary0, correct, Summary).
+display1(Solution, D, _S, Summary0, Summary), memberchk(D, Solution) =>
+    display_colorized(D-partial),
+    (   Summary0.D == correct
+    ->  Summary = Summary0
+    ;   put_dict(D, Summary0, partial, Summary)
+    ).
+display1(_Solution, D, _S, Summary0, Summary) =>
+    display_colorized(D-wrong),
+    (   ( Summary0.D == correct ; Summary0.D == partial )
+    ->  Summary = Summary0
+    ;   put_dict(D, Summary0, wrong, Summary)
+    ).
+
+:- det(display_colorized/1).
+display_colorized(D-Type) =>
     display_fmt(Type, Fmt),
     ansi_format(Fmt, '~w', [D]).
 
