@@ -52,12 +52,11 @@ yes(MinMax, D) :- (1,_) = MinMax.D.
 
 possible(MinMax, _Yes, No, Possible0, Possible) :-
     include(not_in(No), Possible0, Possible),
-    foldl(select, _Yes, Possible, _),
-    true.
-    % zero_counts(ZeroCounts),
-    % foldl(count, Possible, ZeroCounts, Counts),
-    % dict_pairs(Counts, _, CountPairs),
-    % maplist(valid_count(MinMax), CountPairs).
+    % foldl(select, _Yes, Possible, _), % maplist(valid_count...) supersedes this
+    zero_counts(ZeroCounts),
+    foldl(count, Possible, ZeroCounts, Counts),
+    dict_pairs(Counts, _, CountPairs),
+    maplist(valid_count(MinMax), CountPairs).
 
 zero_counts(ZeroCounts) :-
     all_syms(AllSyms),
@@ -67,7 +66,8 @@ zero_counts(ZeroCounts) :-
 zero_count(D, D-0).
 
 count(D, Counts0, Counts) :-
-    Counts.D is Counts0.D + 1.
+    C is Counts0.D + 1,
+    put_dict(D, Counts0, C, Counts).
 
 valid_count(MinMax, D-Count) :-
     (DMin,DMax) = MinMax.D,
