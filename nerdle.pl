@@ -25,29 +25,29 @@ specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) :-
     D7 = 5,
     not_in([4,6,1,5], D8).
 
-solve(S) :-
-    Ss = [D1,D2,D3,D4,D5,D6,D7,D8],
+solve(SolutionStr) :-
+    Solution = [D1,D2,D3,D4,D5,D6,D7,D8],
     specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8),
-    expr(MinMax, Ss),
-    atomic_list_concat(Ss, S).
+    expr(MinMax, Solution),
+    atomic_list_concat(Solution, SolutionStr).
 
 all_syms([=,+,-,*,/, 1,2,3,4,5,6,7,8,9,0]).
 
-expr(MinMax, Ss) :-
+expr(MinMax, Solution) :-
     all_syms(AllSyms),
     include(no(MinMax), AllSyms, No),
     include(yes(MinMax), AllSyms, Yes),
-    puzzle(Ss),
+    puzzle(Solution),
     possible(MinMax, Yes, No, AllSyms, Possible),
-    maplist(in(Possible), Ss),
-    valid_puzzle(Ss).
+    maplist(in(Possible), Solution),
+    valid_puzzle(Solution).
 
-valid_puzzle(Ss) :-
-    append(LeftSs, [=|RightSs], Ss),
-    maplist(in([0,1,2,3,4,5,6,7,8,9]), RightSs),
-    \+ adjacent_ops(LeftSs),
-    chars_term(LeftSs, Left),
-    chars_term(RightSs, Right),
+valid_puzzle(Solution) :-
+    append(LeftSolution, [=|RightSolution], Solution),
+    maplist(in([0,1,2,3,4,5,6,7,8,9]), RightSolution),
+    \+ adjacent_ops(LeftSolution),
+    chars_term(LeftSolution, Left),
+    chars_term(RightSolution, Right),
     catch(Left =:= Right, _, fail).
 
 adjacent_ops(Ds) :-
@@ -55,8 +55,8 @@ adjacent_ops(Ds) :-
     member(D1, [+,-,*,/,=]),
     member(D2, [+,-,*,/,=]).
 
-puzzle(Ss) :-
-    length(Ss, 8).
+puzzle(Solution) :-
+    length(Solution, 8).
 
 min(MinMax, D, Min) :- (Min,_) = MinMax.D.
 max(MinMax, D, Max) :- (_,Max) = MinMax.D.
@@ -102,12 +102,12 @@ in(List, X) :-
 % make_puzzle/1 generates an infinite number of puzzles, using
 % backtracking (so, don't do bagof(S, make_puzzle(S), Ss) because it
 % won't terminate).
-make_puzzle(Ss) :-
+make_puzzle(Solution) :-
     all_syms(AllSyms),
-    puzzle(Ss),
+    puzzle(Solution),
     repeat,
-    maplist(random_elem(AllSyms), Ss),
-    valid_puzzle(Ss).
+    maplist(random_elem(AllSyms), Solution),
+    valid_puzzle(Solution).
 
 random_elem(List, Elem) :-
     length(List, Length),
@@ -116,38 +116,66 @@ random_elem(List, Elem) :-
 
 :- det(run_puzzle/0).
 run_puzzle :-
-    make_puzzle(Ss),
+    make_puzzle(Solution),
+    writeln(Solution), % DO NOT SUBMIT
     !, % don't backtrack into another puzzle
-    run_puzzle(Ss).
+    run_puzzle(Solution).
 
 :- det(run_puzzle/1).
-run_puzzle(Ss) =>
+run_puzzle(Solution) =>
     % Emacs: (ansi-color-for-comint-mode-on)
-    run_puzzle(Ss, []).
+    run_puzzle(Solution, []).
 
 :- det(run_puzzle/2).
-run_puzzle(Ss, Guesses) =>
+run_puzzle(Solution, Guesses) =>
     read_guess(Guess),
     append(Guesses, [Guess], Guesses2),
-    display_result(Guesses2, Ss),
-    run_puzzle2(Ss, Guess, Guesses).
+    display_result(Guesses2, Solution),
+    run_puzzle2(Solution, Guess, Guesses).
+
+:- det(read_guess/1).
+read_guess(Guess) =>
+    write('Guess: '),
+    read_line_to_string(user_input, Line),
+    string_chars(Line, LineChars),
+    (   maplist(digitify, LineChars, Guess),
+        valid_puzzle(Guess)
+    ->  true
+    ;   format('Invalid input (~w)~n', [Line]),
+        read_guess(Guess)
+    ).
+
+:- det(digitify/2).
+digitify('0', D) => D = 0.
+digitify('1', D) => D = 1.
+digitify('2', D) => D = 2.
+digitify('3', D) => D = 3.
+digitify('4', D) => D = 4.
+digitify('5', D) => D = 5.
+digitify('6', D) => D = 6.
+digitify('7', D) => D = 7.
+digitify('8', D) => D = 8.
+digitify('9', D) => D = 9.
+digitify(C,   D) => D = C.
 
 :- det(run_puzzle2/3).
-run_puzzle2(Ss, Guess, _Guesses), solved(Ss, Guess) => true.
-run_puzzle2(Ss, _Guess, Guesses) =>
-    run_puzzle(Ss, Guesses).
+run_puzzle2(Solution, Guess, _Guesses), Solution == Guess => true.
+run_puzzle2(Solution, _Guess, Guesses) =>
+    run_puzzle(Solution, Guesses).
 
 :- det(display_result/2).
-display_result(Guesses, Ss) =>
+display_result(Guesses, Solution) =>
     set_prolog_flag(color_term, true),
     fill_summary(unknown, Summary0),
-    display_result(Guesses, Ss, Summary0).
+    display_result(Guesses, Solution, Summary0).
 
 :- det(display_result/3).
-display_result([], Ss, Summary) =>
+display_result([], _Solution, Summary) =>
     dict_pairs(Summary, _, SummaryPairs),
     join(SummaryPairs, display_result_summary, write(' ')),
-    format('~n', []).
+    ansi_format([reset], '~n', []).
+display_result([Guess|Guesses], Solution, Summary) =>
+    display_result(Guesses, Solution, Summary).
 
 :- det(display_result_summary/1).
 display_result_summary(D-Type) =>
@@ -156,6 +184,7 @@ display_result_summary(D-Type) =>
 
 :- det(display_fmt/2).
 % Defined colors: black, red, green, yellow, blue, magenta, cyan, white
+%                 bold, underline, reset
 display_fmt(unknown, Fmt) => Fmt = [bold, bg(cyan),    fg(black)].
 display_fmt(wrong,   Fmt) => Fmt = [bold, bg(black),   fg(white)].
 display_fmt(correct, Fmt) => Fmt = [bold, bg(green),   fg(white)].
