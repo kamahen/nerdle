@@ -1,5 +1,7 @@
-:- det(specifics/9).
-specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) =>
+% -*- mode: Prolog -*-
+
+% Old game:
+specifics1(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) =>
     % Yes = [1,3,5,0,*,=],
     % No = [2,4,6,7,8,9,+,-,/],
     MinMax = minmax{ = : (1,1),
@@ -26,6 +28,34 @@ specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) =>
     D7 = 5,
     not_in([4,6,1,5], D8).
 
+:- det(specifics/9).
+specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) =>
+    % Yes = [7,8,9,-,*,=]
+    % No = [1,2,3,6,+]
+    MinMax = minmax{ = : (1,1),
+                     + : (0,0),
+                     - : (1,8),
+                     / : (0,8),
+                     * : (1,8),
+                     0 : (0,8),
+                     1 : (0,0),
+                     2 : (0,0),
+                     3 : (0,0),
+                     4 : (0,8),
+                     5 : (0,8),
+                     6 : (0,0),
+                     7 : (1,8),
+                     8 : (1,8),
+                     9 : (1,8)},
+    D1 = 7,
+    not_in([+,8], D2),
+    D3 = (-),
+    not_in([-,8], D4),
+    D5 = (*),
+    not_in([=,9], D6),
+    D7 = (=),
+    not_in([2,6], D8).
+
 solve(SolutionStr) =>
     Solution = [D1,D2,D3,D4,D5,D6,D7,D8],
     specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8),
@@ -35,13 +65,18 @@ solve(SolutionStr) =>
 all_syms([1,2,3,4,5,6,7,8,9,0,+,-,*,/,=]).
 
 expr(MinMax, Solution) =>
+    puzzle(Solution),
     all_syms(AllSyms),
     include(no(MinMax), AllSyms, No),
     include(yes(MinMax), AllSyms, Yes),
-    puzzle(Solution),
+    % format('*** yes=~q no=~q~n', [Yes, No]),
+    !, % not needed
     possible(MinMax, Yes, No, AllSyms, Possible),
     maplist(in(Possible), Solution),
-    valid_puzzle(Solution).
+    valid_puzzle(Solution),
+    % The possible/5 check above is too permissive because it uses
+    % AllSyms; we need to do another check with just the solution.
+    possible(MinMax, Yes, No, Solution, _).
 
 valid_puzzle(Solution) =>
     append(LeftSolution, [=|RightSolution], Solution),
@@ -83,37 +118,36 @@ fill_summary(Fill, ZeroCounts) =>
 :- det(zero_count/3).
 zero_count(Fill, D, D-Fill).
 
-% e.g.: change_dict_arith(b, V, V-1, d{a:10,b:5}, d{a:10,b:4}).
-change_dict_arith(Key, Value, Expr, Counts0, Counts) :-
-    Value = Counts0.Key,
-    C is Expr,
+% e.g.: incr_dict_item(b, -1, d{a:10,b:5}, d{a:10,b:4}).
+incr_dict_item(Key, Incr, Counts0, Counts) =>
+    C is Counts0.Key + Incr,
     put_dict(Key, Counts0, C, Counts).
 
 :- det(count/3).
-count(D, Counts0, Counts) :-
-    change_dict_arith(D, V, V+1, Counts0, Counts).
+count(D, Counts0, Counts) =>
+    incr_dict_item(D, 1, Counts0, Counts).
 
-valid_count(MinMax, D-Count) :-
+valid_count(MinMax, D-Count) =>
     (DMin,DMax) = MinMax.D,
     DMin =< Count,
     DMax >= Count.
 
-chars_term(Chars, Term) :-
+chars_term(Chars, Term) =>
     Chars \= [],
     Chars \= [0|_],
     atomic_list_concat(Chars, String),
     catch(term_string(Term, String), _, fail).
 
-not_in(NotList, X) :-
+not_in(NotList, X) =>
     freeze(X, \+ member(X, NotList)).
 
-in(List, X) :-
+in(List, X) =>
     member(X, List).
 
 % make_puzzle/1 generates an infinite number of puzzles, using
 % backtracking (so, don't do bagof(S, make_puzzle(S), Ss) because it
 % won't terminate).
-make_puzzle(Solution) :-
+make_puzzle(Solution) =>
     all_syms(AllSyms),
     puzzle(Solution),
     repeat,
@@ -193,7 +227,7 @@ display_result_1(Solution, Guess, Summary0, Summary) =>
 
 :- det(adjust_count_for_correct/4).
 adjust_count_for_correct(D, S, Counts0, Counts), D == S =>
-    change_dict_arith(D, V, V-1, Counts0, Counts).
+    incr_dict_item(D, -1, Counts0, Counts).
 adjust_count_for_correct(_D, _S, Counts0, Counts) =>
     Counts = Counts0.
 
@@ -214,11 +248,11 @@ display_1(D, S, Counts-Summary0, CountsSummary), D == S =>
     new_summary(D, Summary0, correct, Summary),
     CountsSummary = Counts-Summary.
 display_1(D, _S, Counts0-Summary0, CountsSummary), Counts0.D > 0 =>
-    change_dict_arith(D, V, V-1, Counts0, Counts),
+    incr_dict_item(D, -1, Counts0, Counts),
     new_summary(D, Summary0, partial, Summary),
     CountsSummary = Counts-Summary.
 display_1(D, _S, Counts0-Summary0, CountsSummary) =>
-    change_dict_arith(D, V, V-1, Counts0, Counts),
+    incr_dict_item(D, -1, Counts0, Counts),
     new_summary(D, Summary0, wrong, Summary),
     CountsSummary = Counts-Summary.
 
@@ -251,8 +285,8 @@ display_fmt(correct, Fmt) => Fmt = [bold, bg(green),   fg(white)].
 display_fmt(partial, Fmt) => Fmt = [bold, bg(magenta), fg(white)].
 
 :- det(join/3).
-join([], _, _) => true.
-join([X], Call, _) => call(Call, X).
+join([],     _,    _)     => true.
+join([X],    Call, _)     => call(Call, X).
 join([X|Xs], Call, Call2) =>
     call(Call, X),
     call(Call2),

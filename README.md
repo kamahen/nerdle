@@ -25,3 +25,13 @@ guess output in colorized form with:
 In addition, there is a summary of all the guesses, with the same
 meanings for the colors.
 
+If you want an aid for playing the game online, then put the
+information you know into the specifics/9 predicate and run
+```
+solve(S).
+```
+or
+```
+forall(solve(S), writeln(S)).
+```
+
