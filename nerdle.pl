@@ -1,4 +1,5 @@
-specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) :-
+:- det(specifics/9).
+specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) =>
     % Yes = [1,3,5,0,*,=],
     % No = [2,4,6,7,8,9,+,-,/],
     MinMax = minmax{ = : (1,1),
@@ -25,15 +26,15 @@ specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) :-
     D7 = 5,
     not_in([4,6,1,5], D8).
 
-solve(SolutionStr) :-
+solve(SolutionStr) =>
     Solution = [D1,D2,D3,D4,D5,D6,D7,D8],
     specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8),
     expr(MinMax, Solution),
     atomic_list_concat(Solution, SolutionStr).
 
-all_syms([=,+,-,*,/, 1,2,3,4,5,6,7,8,9,0]).
+all_syms([1,2,3,4,5,6,7,8,9,0,+,-,*,/,=]).
 
-expr(MinMax, Solution) :-
+expr(MinMax, Solution) =>
     all_syms(AllSyms),
     include(no(MinMax), AllSyms, No),
     include(yes(MinMax), AllSyms, Yes),
@@ -42,7 +43,7 @@ expr(MinMax, Solution) :-
     maplist(in(Possible), Solution),
     valid_puzzle(Solution).
 
-valid_puzzle(Solution) :-
+valid_puzzle(Solution) =>
     append(LeftSolution, [=|RightSolution], Solution),
     maplist(in([0,1,2,3,4,5,6,7,8,9]), RightSolution),
     \+ adjacent_ops(LeftSolution),
@@ -50,12 +51,13 @@ valid_puzzle(Solution) :-
     chars_term(RightSolution, Right),
     catch(Left =:= Right, _, fail).
 
-adjacent_ops(Ds) :-
+adjacent_ops(Ds) =>
     append(_, [D1,D2|_], Ds),
     member(D1, [+,-,*,/,=]),
     member(D2, [+,-,*,/,=]).
 
-puzzle(Solution) :-
+:- det(puzzle/1).
+puzzle(Solution) =>
     length(Solution, 8).
 
 % min_count(MinMax, D, Min) :- (Min,_) = MinMax.D.
@@ -64,7 +66,7 @@ puzzle(Solution) :-
 no( MinMax, D) :- (0,0) = MinMax.D.
 yes(MinMax, D) :- (1,_) = MinMax.D.
 
-possible(MinMax, _Yes, No, Possible0, Possible) :-
+possible(MinMax, _Yes, No, Possible0, Possible) =>
     include(not_in(No), Possible0, Possible),
     % foldl(select, _Yes, Possible, _), % maplist(valid_count...) supersedes this
     fill_summary(0, ZeroCounts),
@@ -72,16 +74,24 @@ possible(MinMax, _Yes, No, Possible0, Possible) :-
     dict_pairs(Counts, _, CountPairs),
     maplist(valid_count(MinMax), CountPairs).
 
-fill_summary(Fill, ZeroCounts) :-
+:- det(fill_summary/2).
+fill_summary(Fill, ZeroCounts) =>
     all_syms(AllSyms),
     maplist(zero_count(Fill), AllSyms, ZeroCountsList),
     dict_create(ZeroCounts, counts, ZeroCountsList).
 
+:- det(zero_count/3).
 zero_count(Fill, D, D-Fill).
 
+% e.g.: change_dict_arith(b, V, V-1, d{a:10,b:5}, d{a:10,b:4}).
+change_dict_arith(Key, Value, Expr, Counts0, Counts) :-
+    Value = Counts0.Key,
+    C is Expr,
+    put_dict(Key, Counts0, C, Counts).
+
+:- det(count/3).
 count(D, Counts0, Counts) :-
-    C is Counts0.D + 1,
-    put_dict(D, Counts0, C, Counts).
+    change_dict_arith(D, V, V+1, Counts0, Counts).
 
 valid_count(MinMax, D-Count) :-
     (DMin,DMax) = MinMax.D,
@@ -110,13 +120,14 @@ make_puzzle(Solution) :-
     maplist(random_elem(AllSyms), Solution),
     valid_puzzle(Solution).
 
-random_elem(List, Elem) :-
+:- det(random_elem/2).
+random_elem(List, Elem) =>
     length(List, Length),
     random(1, Length, I),
     nth1(I, List, Elem).
 
 :- det(run_puzzle/0).
-run_puzzle :-
+run_puzzle =>
     make_puzzle(Solution),
     writeln(Solution), % DO NOT SUBMIT
     !, % don't backtrack into another puzzle
@@ -125,14 +136,20 @@ run_puzzle :-
 :- det(run_puzzle/1).
 run_puzzle(Solution) =>
     % Emacs: (ansi-color-for-comint-mode-on)
-    run_puzzle(Solution, []).
+    fill_summary(unknown, Summary),
+    run_puzzle(Solution, [], Summary).
 
-:- det(run_puzzle/2).
-run_puzzle(Solution, Guesses) =>
+:- det(run_puzzle/3).
+run_puzzle(Solution, Guesses, Summary0) =>
     read_guess(Guess),
     append(Guesses, [Guess], Guesses2),
-    display_result(Guesses2, Solution),
-    run_puzzle2(Solution, Guess, Guesses).
+    display_result(Guesses2, Solution, Summary0, Summary),
+    run_puzzle2(Solution, Guess, Guesses, Summary).
+
+:- det(run_puzzle2/3).
+run_puzzle2(Solution, Guess, _Guesses, _Summary), Solution == Guess => true.
+run_puzzle2(Solution, _Guess, Guesses, Summary) =>
+    run_puzzle(Solution, Guesses, Summary).
 
 :- det(read_guess/1).
 read_guess(Guess) =>
@@ -159,45 +176,65 @@ digitify('8', D) => D = 8.
 digitify('9', D) => D = 9.
 digitify(C,   D) => D = C.
 
-:- det(run_puzzle2/3).
-run_puzzle2(Solution, Guess, _Guesses), Solution == Guess => true.
-run_puzzle2(Solution, _Guess, Guesses) =>
-    run_puzzle(Solution, Guesses).
-
-:- det(display_result/2).
-display_result(Guesses, Solution) =>
+:- det(display_result/4).
+display_result(Guesses, Solution, Summary0, Summary) =>
     set_prolog_flag(color_term, true),
-    fill_summary(unknown, Summary0),
-    foldl(display_result(Solution), Guesses, Summary0, Summary),
+    foldl(display_result_1(Solution), Guesses, Summary0, Summary),
     nl,
     display_summary(Summary).
 
-:- det(display_result/4).
-display_result(Solution, Guess, Summary0, Summary) =>
-    foldl(display1(Solution), Guess, Solution, Summary0, Summary).
+:- det(display_result_1/4).
+display_result_1(Solution, Guess, Summary0, Summary) =>
+    fill_summary(0,  ZeroCounts),
+    foldl(count, Solution, ZeroCounts, SolutionCounts),
+    foldl(adjust_count_for_correct, Guess, Solution, SolutionCounts, SolutionCounts2),
+    foldl(display_1, Guess, Solution, SolutionCounts2-Summary0, _-Summary).
+
+:- det(adjust_count_for_correct/4).
+adjust_count_for_correct(D, S, Counts0, Counts), D == S =>
+    change_dict_arith(D, V, V-1, Counts0, Counts).
+adjust_count_for_correct(_D, _S, Counts0, Counts) =>
+    Counts = Counts0.
 
 :- det(display_summary/1).
 display_summary(Summary) =>
-    dict_pairs(Summary, _, SummaryPairs),
+    all_syms(Syms),
+    maplist(sym_and_count(Summary), Syms, SummaryPairs),
     join(SummaryPairs, display_colorized, write(' ')),
     ansi_format([reset], '~n', []).
 
-:- det(display1/5).
-display1(_Solution, D, S, Summary0, Summary), D == S =>
-    display_colorized(D-correct),
-    put_dict(D, Summary0, correct, Summary).
-display1(Solution, D, _S, Summary0, Summary), memberchk(D, Solution) =>
-    display_colorized(D-partial),
-    (   Summary0.D == correct
-    ->  Summary = Summary0
-    ;   put_dict(D, Summary0, partial, Summary)
-    ).
-display1(_Solution, D, _S, Summary0, Summary) =>
-    display_colorized(D-wrong),
-    (   ( Summary0.D == correct ; Summary0.D == partial )
-    ->  Summary = Summary0
-    ;   put_dict(D, Summary0, wrong, Summary)
-    ).
+:- det(sym_and_count/3).
+sym_and_count(Summary, Sym, Sym-Summary.Sym).
+
+:- det(display_1/4).
+%! Display(+GuessC, +SolutionC, +Counts0Summary0, -CountsSummary) is det.
+display_1(D, S, Counts-Summary0, CountsSummary), D == S =>
+    % Counts have already been adjusted
+    new_summary(D, Summary0, correct, Summary),
+    CountsSummary = Counts-Summary.
+display_1(D, _S, Counts0-Summary0, CountsSummary), Counts0.D > 0 =>
+    change_dict_arith(D, V, V-1, Counts0, Counts),
+    new_summary(D, Summary0, partial, Summary),
+    CountsSummary = Counts-Summary.
+display_1(D, _S, Counts0-Summary0, CountsSummary) =>
+    change_dict_arith(D, V, V-1, Counts0, Counts),
+    new_summary(D, Summary0, wrong, Summary),
+    CountsSummary = Counts-Summary.
+
+:- det(new_summary/4).
+new_summary(D, Summary0, Judgment, Summary) =>
+    display_colorized(D-Judgment),
+    updated_summary(Summary0.D, Judgment, New),
+    put_dict(D, Summary0, New, Summary).
+
+:- det(updated_summary/3).
+%! updated_summary(+Summary0.D, +Judgment, -New) is det.
+updated_summary(Was,     Was,     New) => New = Was.
+updated_summary(_,       unknown, _  ) => fail. % should never happen
+updated_summary(correct, _,       New) => New = correct.
+updated_summary(_,       correct, New) => New = correct.
+updated_summary(partial, wrong,   New) => New = partial.
+updated_summary(unknown, Was,     New) => New = Was.
 
 :- det(display_colorized/1).
 display_colorized(D-Type) =>
@@ -207,7 +244,7 @@ display_colorized(D-Type) =>
 :- det(display_fmt/2).
 % Defined colors: black, red, green, yellow, blue, magenta, cyan, white
 %                 bold, underline, reset
-display_fmt(unknown, Fmt) => Fmt = [bold, bg(cyan),    fg(black)].
+display_fmt(unknown, Fmt) => Fmt = [bold, bg(white),   fg(black)].
 display_fmt(wrong,   Fmt) => Fmt = [bold, bg(black),   fg(white)].
 display_fmt(correct, Fmt) => Fmt = [bold, bg(green),   fg(white)].
 display_fmt(partial, Fmt) => Fmt = [bold, bg(magenta), fg(white)].
