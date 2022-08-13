@@ -122,7 +122,8 @@ make_puzzle(Solution) :-
 
 :- det(random_elem/2).
 random_elem(List, Elem) =>
-    length(List, Length),
+    length(List, Length0),
+    Length is Length0 + 1, % random is a half-open interval
     random(1, Length, I),
     nth1(I, List, Elem).
 
@@ -146,7 +147,7 @@ run_puzzle(Solution, Guesses, Summary0) =>
     display_result(Guesses2, Solution, Summary0, Summary),
     run_puzzle2(Solution, Guess, Guesses, Summary).
 
-:- det(run_puzzle2/3).
+:- det(run_puzzle2/4).
 run_puzzle2(Solution, Guess, _Guesses, _Summary), Solution == Guess => true.
 run_puzzle2(Solution, _Guess, Guesses, Summary) =>
     run_puzzle(Solution, Guesses, Summary).
