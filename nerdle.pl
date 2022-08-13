@@ -1,5 +1,13 @@
 % -*- mode: Prolog -*-
 
+:- module(nerdle,
+          [solve/1,
+           run_puzzle/0,
+           run_puzzle/1
+          ]).
+
+:- set_prolog_flag(optimise, true).
+
 % Old game:
 specifics1(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) =>
     % Yes = [1,3,5,0,*,=],
