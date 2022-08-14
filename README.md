@@ -26,12 +26,19 @@ In addition, there is a summary of all the guesses, with the same
 meanings for the colors.
 
 If you want an aid for playing the game online, then put the
-information you know into the specifics/9 predicate and run
+information you know into a "constraints" predicate and run the
+folowing examples of constraints predicates can be found in
+`test_nerdle.pl`):
+
 ```
-solve(S).
+solve(constraints, S).
 ```
 or
 ```
-forall(solve(S), writeln(S)).
+forall(constraints(S), writeln(S)).
 ```
 
+To test:
+```
+swipl -g test_nerdle -t halt test_nerdle.pl
+```

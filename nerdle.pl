@@ -1,72 +1,21 @@
 % -*- mode: Prolog -*-
 
 :- module(nerdle,
-          [solve/1,
+          [solve/2,
            run_puzzle/0,
-           run_puzzle/1
+           run_puzzle/1,
+           constrain_not_in/2
           ]).
+
+:- use_module(library(lazy_lists)).
 
 :- set_prolog_flag(optimise, true).
 
-% Old game:
-specifics1(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) =>
-    % Yes = [1,3,5,0,*,=],
-    % No = [2,4,6,7,8,9,+,-,/],
-    MinMax = minmax{ = : (1,1),
-                     + : (0,0),
-                     - : (0,0),
-                     / : (0,0),
-                     * : (1,1),
-                     0 : (1,8),
-                     1 : (1,8),
-                     2 : (0,0),
-                     3 : (1,8),
-                     4 : (0,0),
-                     5 : (1,8),
-                     6 : (0,0),
-                     7 : (0,0),
-                     8 : (0,0),
-                     9 : (0,0)},
-    not_in([9,1,7,3], D1),
-    not_in([2,3,1], D2),
-    D3 = (*),
-    not_in([6,7,5], D4),
-    D5 = (=),
-    D6 = 1,
-    D7 = 5,
-    not_in([4,6,1,5], D8).
+:- meta_predicate solve(2, +).
 
-:- det(specifics/9).
-specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8) =>
-    % Yes = [7,8,9,-,*,=]
-    % No = [1,2,3,6,+]
-    MinMax = minmax{ = : (1,1),
-                     + : (0,0),
-                     - : (1,8),
-                     / : (0,8),
-                     * : (1,8),
-                     0 : (0,8),
-                     1 : (0,0),
-                     2 : (0,0),
-                     3 : (0,0),
-                     4 : (0,8),
-                     5 : (0,8),
-                     6 : (0,0),
-                     7 : (1,8),
-                     8 : (1,8),
-                     9 : (1,8)},
-    D1 = 7,
-    not_in([+,8], D2),
-    D3 = (-),
-    not_in([-,8], D4),
-    D5 = (*),
-    not_in([=,9], D6),
-    D7 = (=),
-    not_in([2,6], D8).
-
-solve(SolutionStr) =>
-    Solution = [D1,D2,D3,D4,D5,D6,D7,D8],
-    specifics(MinMax, D1,D2,D3,D4,D5,D6,D7,D8),
+solve(Constraints, SolutionStr) =>
+    puzzle(Solution),
+    call(Constraints, Solution, MinMax),
     expr(MinMax, Solution),
     atomic_list_concat(Solution, SolutionStr).
 
@@ -80,7 +29,7 @@ expr(MinMax, Solution) =>
     % format('*** yes=~q no=~q~n', [Yes, No]),
     !, % not needed
     possible(MinMax, Yes, No, AllSyms, Possible),
-    maplist(in(Possible), Solution),
+    maplist(member_(Possible), Solution),
     valid_puzzle(Solution),
     % The possible/5 check above is too permissive because it uses
     % AllSyms; we need to do another check with just the solution.
@@ -88,7 +37,7 @@ expr(MinMax, Solution) =>
 
 valid_puzzle(Solution) =>
     append(LeftSolution, [=|RightSolution], Solution),
-    maplist(in([0,1,2,3,4,5,6,7,8,9]), RightSolution),
+    maplist(member_([0,1,2,3,4,5,6,7,8,9]), RightSolution),
     \+ adjacent_ops(LeftSolution),
     chars_term(LeftSolution, Left),
     chars_term(RightSolution, Right),
@@ -110,7 +59,7 @@ no( MinMax, D) :- (0,0) = MinMax.D.
 yes(MinMax, D) :- (1,_) = MinMax.D.
 
 possible(MinMax, _Yes, No, Possible0, Possible) =>
-    include(not_in(No), Possible0, Possible),
+    include(constrain_not_in(No), Possible0, Possible),
     % foldl(select, _Yes, Possible, _), % maplist(valid_count...) supersedes this
     fill_summary(0, ZeroCounts),
     foldl(count, Possible, ZeroCounts, Counts),
@@ -146,10 +95,10 @@ chars_term(Chars, Term) =>
     atomic_list_concat(Chars, String),
     catch(term_string(Term, String), _, fail).
 
-not_in(NotList, X) =>
+constrain_not_in(NotList, X) =>
     freeze(X, \+ member(X, NotList)).
 
-in(List, X) =>
+member_(List, X) =>
     member(X, List).
 
 % make_puzzle/1 generates an infinite number of puzzles, using
@@ -184,7 +133,7 @@ run_puzzle(Solution) =>
 
 :- det(run_puzzle/3).
 run_puzzle(Solution, Guesses, Summary0) =>
-    read_guess(Guess),
+    read_guess(user_input, Guess),
     append(Guesses, [Guess], Guesses2),
     display_result(Guesses2, Solution, Summary0, Summary),
     run_puzzle2(Solution, Guess, Guesses, Summary).
@@ -194,16 +143,38 @@ run_puzzle2(Solution, Guess, _Guesses, _Summary), Solution == Guess => true.
 run_puzzle2(Solution, _Guess, Guesses, Summary) =>
     run_puzzle(Solution, Guesses, Summary).
 
-:- det(read_guess/1).
-read_guess(Guess) =>
+:- det(read_guess/2).
+read_guess(InStream, Guess) =>
     write('Guess: '),
-    read_line_to_string(user_input, Line),
-    string_chars(Line, LineChars),
-    (   maplist(digitify, LineChars, Guess),
-        valid_puzzle(Guess)
-    ->  true
-    ;   format('Invalid input (~w)~n', [Line]),
-        read_guess(Guess)
+    read_line_to_string(InStream, Line),
+    (   Line == end_of_file
+    ->  Guess = end_of_file
+    ;   Line == "end_of_file"
+    ->  Guess = end_of_file
+    ;   string_chars(Line, LineChars),
+        (   maplist(digitify, LineChars, Guess),
+            valid_puzzle(Guess)
+        ->  true
+        ;   format('Invalid input (~w)~n', [Line]),
+            read_guess(InStream, Guess)
+        )
+    ).
+
+:- det(lazy_read_guesses/3).
+lazy_read_guesses(InStream, List, Tail) =>
+    (   read_guess(InStream, Guess),
+        Guess \== end_of_file
+    ->  List  = [Guess|Tail]
+    ;   Tail = [],
+        List = []
+    ).
+
+:- det(lazy_write_results/2).
+lazy_write_results(List, Tail) =>
+    (   List = [X|Tail]
+    ->  freeze(X, format('~q~n', [X]))
+    ;   Tail = [],
+        List = []
     ).
 
 :- det(digitify/2).
@@ -299,5 +270,4 @@ join([X|Xs], Call, Call2) =>
     call(Call, X),
     call(Call2),
     join(Xs, Call, Call2).
-
 
