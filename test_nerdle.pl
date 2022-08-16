@@ -24,23 +24,25 @@ test(solve1, set(S == ['50*3=150'])) :-
 test(solve2, set(S == ['77-9*8=5', '79-9*8=7'])) :-
     solve(constraints2, S).
 
-test(run_puzzle1, blocked(not_ready)) :-
+test(run_puzzle1) :-
+    init_summary(Summary),
     run_puzzle([5,0,*,3,=,1,5,0],
-               ['31*5=155',
-                '1+16/4=5',
-                '12/6*3=6',
-                '50*5=250',
-                '50*3=150'],
-               _S).
+               [[3,1,*,5,=,1,5,5],
+                [1,+,1,6,/,4,=,5],
+                [1,2,/,6,*,3,=,6],
+                [5,0,*,5,=,2,5,0],
+                [5,0,*,3,=,1,5,0]],
+               _Guesses, Summary).
 
 % TODO: puzzle2 - I've lost the guesses :(
 
-test(run_puzzle3, blocked(not_ready)) :-
+test(run_puzzle3) :-
+    init_summary(Summary),
     run_puzzle([4,4,+,2,7,=,7,1],
-               ['14+38=52',
-                '24+16=40',
-                '44+27=71'],
-               _S).
+               [[1,4,+,3,8,=,5,2],
+                [2,4,+,1,6,=,4,0],
+                [4,4,+,2,7,=,7,1]],
+               _Guesses, Summary).
 
 :- end_tests(nerdle).
 

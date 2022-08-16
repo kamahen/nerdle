@@ -4,6 +4,11 @@
           [solve/2,
            run_puzzle/0,
            run_puzzle/1,
+           run_puzzle/2,
+           run_puzzle/4,
+           lazy_read_guesses/1,
+           lazy_read_guesses/2,
+           init_summary/1,
            constrain_not_in/2
           ]).
 
@@ -39,6 +44,8 @@ valid_puzzle(Solution) =>
     append(LeftSolution, [=|RightSolution], Solution),
     maplist(member_([0,1,2,3,4,5,6,7,8,9]), RightSolution),
     \+ adjacent_ops(LeftSolution),
+    LeftSolution \= [+|_],
+    LeftSolution \= [-|_],
     chars_term(LeftSolution, Left),
     chars_term(RightSolution, Right),
     catch(Left =:= Right, _, fail).
@@ -66,11 +73,15 @@ possible(MinMax, _Yes, No, Possible0, Possible) =>
     dict_pairs(Counts, _, CountPairs),
     maplist(valid_count(MinMax), CountPairs).
 
+:- det(init_summary/1).
+init_summary(Summary) :-
+    fill_summary(unknown, Summary).
+
 :- det(fill_summary/2).
-fill_summary(Fill, ZeroCounts) =>
+fill_summary(Fill, Summary) =>
     all_syms(AllSyms),
-    maplist(zero_count(Fill), AllSyms, ZeroCountsList),
-    dict_create(ZeroCounts, counts, ZeroCountsList).
+    maplist(zero_count(Fill), AllSyms, SummaryList),
+    dict_create(Summary, counts, SummaryList).
 
 :- det(zero_count/3).
 zero_count(Fill, D, D-Fill).
@@ -126,22 +137,33 @@ run_puzzle =>
     run_puzzle(Solution).
 
 :- det(run_puzzle/1).
-run_puzzle(Solution) =>
+run_puzzle(Solution) :-
+    lazy_read_guesses(ReadGuesses),
+    run_puzzle(Solution, ReadGuesses).
+
+:- det(run_puzzle/2).
+run_puzzle(Solution, ReadGuesses) =>
     % Emacs: (ansi-color-for-comint-mode-on)
     fill_summary(unknown, Summary),
-    run_puzzle(Solution, [], Summary).
+    run_puzzle(Solution, ReadGuesses, Summary).
 
 :- det(run_puzzle/3).
-run_puzzle(Solution, Guesses, Summary0) =>
-    read_guess(user_input, Guess),
+run_puzzle(Solution, ReadGuesses, Summary) :-
+    run_puzzle(Solution, ReadGuesses, [], Summary).
+
+:- det(run_puzzle/4).
+run_puzzle(Solution, [Guess|ReadGuesses], Guesses, Summary0) :-
+    !,
     append(Guesses, [Guess], Guesses2),
     display_result(Guesses2, Solution, Summary0, Summary),
-    run_puzzle2(Solution, Guess, Guesses, Summary).
+    run_puzzle2(Solution, ReadGuesses, Guess, Guesses, Summary),
+    !. % TODO: without this, there's a choicepoint when run in tests - why?
+run_puzzle(_Solution, [], _Guesses, _Summary0).
 
-:- det(run_puzzle2/4).
-run_puzzle2(Solution, Guess, _Guesses, _Summary), Solution == Guess => true.
-run_puzzle2(Solution, _Guess, Guesses, Summary) =>
-    run_puzzle(Solution, Guesses, Summary).
+:- det(run_puzzle2/5).
+run_puzzle2(Solution, _ReadGuesses, Guess, _Guesses, _Summary), Solution == Guess => true.
+run_puzzle2(Solution, ReadGuesses, _Guess, Guesses, Summary) =>
+    run_puzzle(Solution, ReadGuesses, Guesses, Summary).
 
 :- det(read_guess/2).
 read_guess(InStream, Guess) =>
@@ -160,8 +182,16 @@ read_guess(InStream, Guess) =>
         )
     ).
 
-:- det(lazy_read_guesses/3).
-lazy_read_guesses(InStream, List, Tail) =>
+:- det(lazy_read_guesses/1).
+lazy_read_guesses(ReadGuesses) :-
+    lazy_read_guesses(user_input, ReadGuesses).
+
+:- det(lazy_read_guesses/2).
+lazy_read_guesses(InStream, ReadGuesses) :-
+    lazy_list(lazy_read_guess(InStream), ReadGuesses).
+
+:- det(lazy_read_guess/3).
+lazy_read_guess(InStream, List, Tail) =>
     (   read_guess(InStream, Guess),
         Guess \== end_of_file
     ->  List  = [Guess|Tail]
@@ -199,7 +229,7 @@ display_result(Guesses, Solution, Summary0, Summary) =>
 
 :- det(display_result_1/4).
 display_result_1(Solution, Guess, Summary0, Summary) =>
-    fill_summary(0,  ZeroCounts),
+    fill_summary(0, ZeroCounts),
     foldl(count, Solution, ZeroCounts, SolutionCounts),
     foldl(adjust_count_for_correct, Guess, Solution, SolutionCounts, SolutionCounts2),
     foldl(display_1, Guess, Solution, SolutionCounts2-Summary0, _-Summary).
