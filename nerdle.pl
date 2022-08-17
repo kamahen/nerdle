@@ -14,6 +14,16 @@
            set_interactive_display/1
           ]).
 
+% e.g.:
+% 31*5=155
+% 1+16/4=5
+% 50*3=150
+t(Summaries) :-
+    init_summary(Summary0),
+    lazy_write_results(Summaries),
+    lazy_read_guesses(ReadGuesses),
+    run_puzzle(ReadGuesses, [5,0,*,3,=,1,5,0], [], Summary0, _Summary, Summaries).
+
 :- use_module(library(lazy_lists)).
 
 :- set_prolog_flag(optimise, true).
@@ -170,18 +180,19 @@ run_puzzle(ReadGuesses, Solution) =>
 
 :- det(run_puzzle/3).
 run_puzzle(ReadGuesses, Solution, Summary0) :-
-    run_puzzle(ReadGuesses, Solution, [], Summary0, _).
+    run_puzzle(ReadGuesses, Solution, [], Summary0, _, _).
 
 :- det(run_puzzle/5).
-% run_puzzle(+ReadGuesses:list, +Solution, +Guesses0, +Summary0, +Summary)
-run_puzzle([Guess|ReadGuesses], Solution, Guesses0, Summary0, Summary) :-
+% run_puzzle(+ReadGuesses:list, +Solution, +Guesses0, +Summary0, -Summary, -Summaries)
+run_puzzle([Guess|ReadGuesses], Solution, Guesses0, Summary0, Summary, [Summary|Summaries]) :-
     !, % Needed with lazy list for ReadGuesses.
     append(Guesses0, [Guess], Guesses2), % TODO: Guesses2 = [Guess|Guesses0]
     display_result(Guesses2, Solution, Summary0, Summary2),
     (   Solution == Guess
     ->  Summary = Summary2,
+        Summaries = [],
         do_display(nl)   % TODO: delete
-    ;   run_puzzle(ReadGuesses, Solution, Guesses2, Summary2, Summary)
+    ;   run_puzzle(ReadGuesses, Solution, Guesses2, Summary2, Summary, Summaries)
     ).
 run_puzzle([], _Solution, _Guesses0, Summary, Summary).
 
@@ -223,13 +234,14 @@ lazy_read_guess(InStream, List, Tail) =>
         List = []
     ).
 
-:- det(lazy_write_results/2).
-lazy_write_results(List, Tail) =>
-    (   List = [X|Tail]
-    ->  freeze(X, format('~q~n', [X]))
-    ;   Tail = [],
-        List = []
-    ).
+% :- det(lazy_write_results/1).  % TODO
+lazy_write_results(List) :-
+    freeze(List, lazy_write_results_(List)).
+
+lazy_write_results_([X|Xs]) =>
+    freeze(X, ( format('*** ~q~n', [X]),
+                lazy_write_results(Xs) )).
+lazy_write_results_([]) => true.
 
 :- det(digitify/2).
 digitify('0', D) => D = 0.
