@@ -26,23 +26,23 @@ test(solve2, set(S == ['77-9*8=5', '79-9*8=7'])) :-
 
 test(run_puzzle1) :-
     init_summary(Summary),
-    run_puzzle([5,0,*,3,=,1,5,0],
-               [[3,1,*,5,=,1,5,5],
+    run_puzzle([[3,1,*,5,=,1,5,5],
                 [1,+,1,6,/,4,=,5],
                 [1,2,/,6,*,3,=,6],
                 [5,0,*,5,=,2,5,0],
                 [5,0,*,3,=,1,5,0]],
-               _Guesses, Summary).
+               [5,0,*,3,=,1,5,0],
+               [], Summary).
 
 % TODO: puzzle2 - I've lost the guesses :(
 
 test(run_puzzle3) :-
     init_summary(Summary),
-    run_puzzle([4,4,+,2,7,=,7,1],
-               [[1,4,+,3,8,=,5,2],
+    run_puzzle([[1,4,+,3,8,=,5,2],
                 [2,4,+,1,6,=,4,0],
                 [4,4,+,2,7,=,7,1]],
-               _Guesses, Summary).
+               [4,4,+,2,7,=,7,1],
+               [], Summary).
 
 :- end_tests(nerdle).
 

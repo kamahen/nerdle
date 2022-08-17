@@ -139,31 +139,29 @@ run_puzzle =>
 :- det(run_puzzle/1).
 run_puzzle(Solution) :-
     lazy_read_guesses(ReadGuesses),
-    run_puzzle(Solution, ReadGuesses).
+    run_puzzle(ReadGuesses, Solution).
 
 :- det(run_puzzle/2).
-run_puzzle(Solution, ReadGuesses) =>
+run_puzzle(ReadGuesses, Solution) =>
     % Emacs: (ansi-color-for-comint-mode-on)
     fill_summary(unknown, Summary),
-    run_puzzle(Solution, ReadGuesses, Summary).
+    run_puzzle(ReadGuesses, Solution, Summary).
 
 :- det(run_puzzle/3).
-run_puzzle(Solution, ReadGuesses, Summary) :-
-    run_puzzle(Solution, ReadGuesses, [], Summary).
+run_puzzle(ReadGuesses, Solution, Summary) :-
+    run_puzzle(ReadGuesses, Solution, [], Summary).
 
 :- det(run_puzzle/4).
-run_puzzle(Solution, [Guess|ReadGuesses], Guesses, Summary0) :-
+% run_puzzle(+ReadGuesses:list, +Solution, +Guesses, +Summary0)
+run_puzzle([Guess|ReadGuesses], Solution, Guesses, Summary0) :-
     !,
     append(Guesses, [Guess], Guesses2),
     display_result(Guesses2, Solution, Summary0, Summary),
-    run_puzzle2(Solution, ReadGuesses, Guess, Guesses, Summary),
-    !. % TODO: without this, there's a choicepoint when run in tests - why?
-run_puzzle(_Solution, [], _Guesses, _Summary0).
-
-:- det(run_puzzle2/5).
-run_puzzle2(Solution, _ReadGuesses, Guess, _Guesses, _Summary), Solution == Guess => true.
-run_puzzle2(Solution, ReadGuesses, _Guess, Guesses, Summary) =>
-    run_puzzle(Solution, ReadGuesses, Guesses, Summary).
+    (   Solution == Guess
+    ->  true
+    ;   run_puzzle(ReadGuesses, Solution, Guesses, Summary)
+    ).
+run_puzzle([], _Solution, _Guesses, _Summary0).
 
 :- det(read_guess/2).
 read_guess(InStream, Guess) =>
