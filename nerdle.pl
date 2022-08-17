@@ -9,6 +9,7 @@
            lazy_read_guesses/1,
            lazy_read_guesses/2,
            init_summary/1,
+           string_to_guess/2,
            constrain_not_in/2
           ]).
 
@@ -42,7 +43,7 @@ expr(MinMax, Solution) =>
 
 valid_puzzle(Solution) =>
     append(LeftSolution, [=|RightSolution], Solution),
-    maplist(member_([0,1,2,3,4,5,6,7,8,9]), RightSolution),
+    maplist(memberchk_([0,1,2,3,4,5,6,7,8,9]), RightSolution),
     \+ adjacent_ops(LeftSolution),
     LeftSolution \= [+|_],
     LeftSolution \= [-|_],
@@ -112,6 +113,9 @@ constrain_not_in(NotList, X) =>
 member_(List, X) =>
     member(X, List).
 
+memberchk_(List, X) =>
+    memberchk(X, List).
+
 % make_puzzle/1 generates an infinite number of puzzles, using
 % backtracking (so, don't do bagof(S, make_puzzle(S), Ss) because it
 % won't terminate).
@@ -171,14 +175,18 @@ read_guess(InStream, Guess) =>
     ->  Guess = end_of_file
     ;   Line == "end_of_file"
     ->  Guess = end_of_file
-    ;   string_chars(Line, LineChars),
-        (   maplist(digitify, LineChars, Guess),
-            valid_puzzle(Guess)
-        ->  true
-        ;   format('Invalid input (~w)~n', [Line]),
-            read_guess(InStream, Guess)
-        )
+    ;   string_to_guess(Line, Guess)
+    ->  true
+    ;   format('Invalid input (~w)~n', [Line]),
+        read_guess(InStream, Guess)
     ).
+
+% semi-deterministic.
+string_to_guess(Line, Guess) :-
+    string_chars(Line, LineChars),
+    maplist(digitify, LineChars, Guess),
+    valid_puzzle(Guess),
+    !.
 
 :- det(lazy_read_guesses/1).
 lazy_read_guesses(ReadGuesses) :-

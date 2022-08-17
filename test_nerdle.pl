@@ -38,9 +38,14 @@ test(run_puzzle1) :-
 
 test(run_puzzle3) :-
     init_summary(Summary),
-    run_puzzle([[1,4,+,3,8,=,5,2],
-                [2,4,+,1,6,=,4,0],
-                [4,4,+,2,7,=,7,1]],
+    GuessesAsLines = ['14+38=52',
+                      '24+16=40',
+                      '44+27=71'],
+    maplist(string_to_guess, GuessesAsLines, GuessesAsLists),
+    assertion(GuessesAsLists == [[1,4,+,3,8,=,5,2],
+                                 [2,4,+,1,6,=,4,0],
+                                 [4,4,+,2,7,=,7,1]]),
+    run_puzzle(GuessesAsLists,
                [4,4,+,2,7,=,7,1],
                [], Summary).
 
@@ -129,4 +134,3 @@ constraints3([D1,D2,D3,D4,D5,D6,D7,D8], MinMax) :-
     D6 = =,
     constrain_not_in([5,4], D7),
     constrain_not_in([2,0], D8).
-
