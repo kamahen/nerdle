@@ -5,7 +5,7 @@
            run_puzzle/0,
            run_puzzle/1,
            run_puzzle/2,
-           run_puzzle/4,
+           run_puzzle/5,
            lazy_read_guesses/1,
            lazy_read_guesses/2,
            init_summary/1,
@@ -35,7 +35,7 @@ expr(MinMax, Solution) =>
     % format('*** yes=~q no=~q~n', [Yes, No]),
     !, % not needed
     possible(MinMax, Yes, No, AllSyms, Possible),
-    maplist(member_(Possible), Solution),
+    maplist(is_in(Possible), Solution),
     valid_puzzle(Solution),
     % The possible/5 check above is too permissive because it uses
     % AllSyms; we need to do another check with just the solution.
@@ -43,7 +43,7 @@ expr(MinMax, Solution) =>
 
 valid_puzzle(Solution) =>
     append(LeftSolution, [=|RightSolution], Solution),
-    maplist(memberchk_([0,1,2,3,4,5,6,7,8,9]), RightSolution),
+    maplist(is_in_chk([0,1,2,3,4,5,6,7,8,9]), RightSolution),
     \+ adjacent_ops(LeftSolution),
     LeftSolution \= [+|_],
     LeftSolution \= [-|_],
@@ -110,10 +110,10 @@ chars_term(Chars, Term) =>
 constrain_not_in(NotList, X) =>
     freeze(X, \+ member(X, NotList)).
 
-member_(List, X) =>
+is_in(List, X) =>
     member(X, List).
 
-memberchk_(List, X) =>
+is_in_chk(List, X) =>
     memberchk(X, List).
 
 % make_puzzle/1 generates an infinite number of puzzles, using
@@ -148,24 +148,24 @@ run_puzzle(Solution) :-
 :- det(run_puzzle/2).
 run_puzzle(ReadGuesses, Solution) =>
     % Emacs: (ansi-color-for-comint-mode-on)
-    fill_summary(unknown, Summary),
-    run_puzzle(ReadGuesses, Solution, Summary).
+    fill_summary(unknown, Summary0),
+    run_puzzle(ReadGuesses, Solution, Summary0).
 
 :- det(run_puzzle/3).
-run_puzzle(ReadGuesses, Solution, Summary) :-
-    run_puzzle(ReadGuesses, Solution, [], Summary).
+run_puzzle(ReadGuesses, Solution, Summary0) :-
+    run_puzzle(ReadGuesses, Solution, [], Summary0, _).
 
 :- det(run_puzzle/4).
-% run_puzzle(+ReadGuesses:list, +Solution, +Guesses, +Summary0)
-run_puzzle([Guess|ReadGuesses], Solution, Guesses, Summary0) :-
-    !,
-    append(Guesses, [Guess], Guesses2),
-    display_result(Guesses2, Solution, Summary0, Summary),
+% run_puzzle(+ReadGuesses:list, +Solution, +Guesses0, +Summary0, +Summary)
+run_puzzle([Guess|ReadGuesses], Solution, Guesses0, Summary0, Summary) :-
+    append(Guesses0, [Guess], Guesses2), % TODO: Guesses2 = [Guess|Guesses0]
+    display_result(Guesses2, Solution, Summary0, Summary2),
     (   Solution == Guess
-    ->  true
-    ;   run_puzzle(ReadGuesses, Solution, Guesses, Summary)
+    ->  Summary = Summary2,
+        writeln(''), writeln('')
+    ;   run_puzzle(ReadGuesses, Solution, Guesses2, Summary2, Summary)
     ).
-run_puzzle([], _Solution, _Guesses, _Summary0).
+run_puzzle([], _Solution, _Guesses0, Summary, Summary).
 
 :- det(read_guess/2).
 read_guess(InStream, Guess) =>

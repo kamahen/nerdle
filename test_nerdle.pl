@@ -24,20 +24,46 @@ test(solve1, set(S == ['50*3=150'])) :-
 test(solve2, set(S == ['77-9*8=5', '79-9*8=7'])) :-
     solve(constraints2, S).
 
-test(run_puzzle1) :-
-    init_summary(Summary),
+test(run_puzzle1, Summary == counts{1 : correct,
+                                    2 : wrong,
+                                    3 : correct,
+                                    4 : wrong,
+                                    5 : correct,
+                                    6 : wrong,
+                                    7 : unknown,
+                                    8 : unknown,
+                                    9 : unknown,
+                                    0 : correct,
+                                    + : wrong,
+                                    - : unknown,
+                                    * : correct,
+                                    / : wrong,
+                                    = : correct}) :-
+    init_summary(Summary0),
     run_puzzle([[3,1,*,5,=,1,5,5],
                 [1,+,1,6,/,4,=,5],
                 [1,2,/,6,*,3,=,6],
                 [5,0,*,5,=,2,5,0],
                 [5,0,*,3,=,1,5,0]],
                [5,0,*,3,=,1,5,0],
-               [], Summary).
+               [], Summary0, Summary).
 
-% TODO: puzzle2 - I've lost the guesses :(
-
-test(run_puzzle3) :-
-    init_summary(Summary),
+test(run_puzzle2, Summary == counts{1 : correct,
+                                    2 : correct,
+                                    3 : wrong,
+                                    4 : correct,
+                                    5 : wrong,
+                                    6 : wrong,
+                                    7 : correct,
+                                    8 : wrong,
+                                    9 : unknown,
+                                    0 : wrong,
+                                    + : correct,
+                                    - : unknown,
+                                    * : unknown,
+                                    / : unknown,
+                                    = : correct}) :-
+    init_summary(Summary0),
     GuessesAsLines = ['14+38=52',
                       '24+16=40',
                       '44+27=71'],
@@ -47,7 +73,7 @@ test(run_puzzle3) :-
                                  [4,4,+,2,7,=,7,1]]),
     run_puzzle(GuessesAsLists,
                [4,4,+,2,7,=,7,1],
-               [], Summary).
+               [], Summary0, Summary).
 
 :- end_tests(nerdle).
 
