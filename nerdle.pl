@@ -10,7 +10,8 @@
            lazy_read_guesses/2,
            init_summary/1,
            string_to_guess/2,
-           constrain_not_in/2
+           constrain_not_in/2,
+           set_interactive_display/1
           ]).
 
 :- use_module(library(lazy_lists)).
@@ -18,6 +19,22 @@
 :- set_prolog_flag(optimise, true).
 
 :- meta_predicate solve(2, +).
+
+:- dynamic interactive_display/1.
+
+interactive_display(true).
+
+set_interactive_display(NewValue) :-
+    retractall(interactive_display(_)),
+    assertz(interactive_display(NewValue)).
+
+:- meta_predicate do_display(0).
+
+do_display(Goal) :-
+    (   interactive_display(true)
+    ->  call(Goal)
+    ;   true
+    ).
 
 solve(Constraints, SolutionStr) =>
     puzzle(Solution),
@@ -155,14 +172,15 @@ run_puzzle(ReadGuesses, Solution) =>
 run_puzzle(ReadGuesses, Solution, Summary0) :-
     run_puzzle(ReadGuesses, Solution, [], Summary0, _).
 
-:- det(run_puzzle/4).
+:- det(run_puzzle/5).
 % run_puzzle(+ReadGuesses:list, +Solution, +Guesses0, +Summary0, +Summary)
 run_puzzle([Guess|ReadGuesses], Solution, Guesses0, Summary0, Summary) :-
+    !, % Needed with lazy list for ReadGuesses.
     append(Guesses0, [Guess], Guesses2), % TODO: Guesses2 = [Guess|Guesses0]
     display_result(Guesses2, Solution, Summary0, Summary2),
     (   Solution == Guess
     ->  Summary = Summary2,
-        writeln(''), writeln('')
+        do_display(nl)   % TODO: delete
     ;   run_puzzle(ReadGuesses, Solution, Guesses2, Summary2, Summary)
     ).
 run_puzzle([], _Solution, _Guesses0, Summary, Summary).
@@ -230,7 +248,7 @@ digitify(C,   D) => D = C.
 display_result(Guesses, Solution, Summary0, Summary) =>
     set_prolog_flag(color_term, true),
     foldl(display_result_1(Solution), Guesses, Summary0, Summary),
-    nl,
+    do_display(nl),
     display_summary(Summary).
 
 :- det(display_result_1/4).
@@ -250,8 +268,8 @@ adjust_count_for_correct(_D, _S, Counts0, Counts) =>
 display_summary(Summary) =>
     all_syms(Syms),
     maplist(sym_and_count(Summary), Syms, SummaryPairs),
-    join(SummaryPairs, display_colorized, write(' ')),
-    ansi_format([reset], '~n', []).
+    do_display(join(SummaryPairs, display_colorized, write(' '))),
+    do_display(ansi_format([reset], '~n', [])).
 
 :- det(sym_and_count/3).
 sym_and_count(Summary, Sym, Sym-Summary.Sym).
@@ -273,7 +291,7 @@ display_1(D, _S, Counts0-Summary0, CountsSummary) =>
 
 :- det(new_summary/4).
 new_summary(D, Summary0, Judgment, Summary) =>
-    display_colorized(D-Judgment),
+    do_display(display_colorized(D-Judgment)),
     updated_summary(Summary0.D, Judgment, New),
     put_dict(D, Summary0, New, Summary).
 

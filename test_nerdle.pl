@@ -16,7 +16,7 @@ test_nerdle :-
     run_tests([ nerdle
 	      ]).
 
-:- begin_tests(nerdle).
+:- begin_tests(nerdle, [setup(set_interactive_display(false))]).
 
 test(solve1, set(S == ['50*3=150'])) :-
     solve(constraints1, S).
