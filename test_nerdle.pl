@@ -24,6 +24,11 @@ test(solve1, set(S == ['50*3=150'])) :-
 test(solve2, set(S == ['77-9*8=5', '79-9*8=7'])) :-
     solve(constraints2, S).
 
+% TODO: solve3
+
+test(solve4, set(S == ['5*73=365'])) :-
+    solve(constraints4, S).
+
 test(run_puzzle1, Summary == counts{1 : correct,
                                     2 : wrong,
                                     3 : correct,
@@ -74,6 +79,14 @@ test(run_puzzle2, Summary == counts{1 : correct,
     run_puzzle(GuessesAsLists,
                [4,4,+,2,7,=,7,1],
                [], Summary0, Summary).
+
+% TODO: use constraints4 to make a puzzle with guesses
+%       4*8+5=37
+%       6*27=162
+%       5*73=365 (answer)
+test(run_puzzle3) :-
+    init_summary(_Summary0),
+    true.
 
 :- end_tests(nerdle).
 
@@ -160,3 +173,29 @@ constraints3([D1,D2,D3,D4,D5,D6,D7,D8], MinMax) :-
     D6 = =,
     constrain_not_in([5,4], D7),
     constrain_not_in([2,0], D8).
+
+constraints4([D1,D2,D3,D4,D5,D6,D7,D8], MinMax) :-
+    MinMax = minmax{ = : (1,1),
+                     + : (0,0),
+                     - : (0,8),
+                     / : (0,8),
+                     * : (1,8),
+                     1 : (0,0),
+                     2 : (0,0),
+                     3 : (1,8),
+                     4 : (0,0),
+                     5 : (1,8),
+                     6 : (1,8),
+                     7 : (1,8),
+                     8 : (0,0),
+                     9 : (0,8),
+                     0 : (0,8)},
+    constrain_not_in([4,6], D1),
+    D2 = *,
+    constrain_not_in([8,2], D3),
+    constrain_not_in([+,7], D4),
+    constrain_not_in([5], D5), D5 = (=),
+    constrain_not_in([=,1], D6),
+    constrain_not_in([3], D7), D7 = 6,
+    constrain_not_in([7,2], D8).
+
