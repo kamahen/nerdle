@@ -14,6 +14,9 @@
            set_interactive_display/1
           ]).
 
+:- use_module(library(lazy_lists)).
+
+% TODO: review this comment
 % e.g.:
 % 31*5=155
 % 1+16/4=5
@@ -23,8 +26,6 @@ t(Summaries) :-
     lazy_write_results(Summaries),
     lazy_read_guesses(ReadGuesses),
     run_puzzle(ReadGuesses, [5,0,*,3,=,1,5,0], [], Summary0, _Summary, Summaries).
-
-:- use_module(library(lazy_lists)).
 
 :- set_prolog_flag(optimise, true).
 
@@ -180,19 +181,18 @@ run_puzzle(ReadGuesses, Solution) =>
 
 :- det(run_puzzle/3).
 run_puzzle(ReadGuesses, Solution, Summary0) :-
-    run_puzzle(ReadGuesses, Solution, [], Summary0, _, _).
+    run_puzzle(ReadGuesses, Solution, [], Summary0, _).
 
 :- det(run_puzzle/5).
-% run_puzzle(+ReadGuesses:list, +Solution, +Guesses0, +Summary0, -Summary, -Summaries)
-run_puzzle([Guess|ReadGuesses], Solution, Guesses0, Summary0, Summary, [Summary|Summaries]) :-
+% run_puzzle(+ReadGuesses:list, +Solution, +Guesses0, +Summary0, +Summary)
+run_puzzle([Guess|ReadGuesses], Solution, Guesses0, Summary0, Summary) :-
     !, % Needed with lazy list for ReadGuesses.
     append(Guesses0, [Guess], Guesses2), % TODO: Guesses2 = [Guess|Guesses0]
     display_result(Guesses2, Solution, Summary0, Summary2),
     (   Solution == Guess
     ->  Summary = Summary2,
-        Summaries = [],
         do_display(nl)   % TODO: delete
-    ;   run_puzzle(ReadGuesses, Solution, Guesses2, Summary2, Summary, Summaries)
+    ;   run_puzzle(ReadGuesses, Solution, Guesses2, Summary2, Summary)
     ).
 run_puzzle([], _Solution, _Guesses0, Summary, Summary).
 
