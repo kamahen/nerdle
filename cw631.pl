@@ -10,6 +10,10 @@
 %     all items, and the sum/3 predicate renamed correspondingly)
 %  Examples have been put into unit-test form; you can run the by
 %  ?- test_cw631.
+%
+% TODO: add examples from the ICLP paper, for example composing affect
+%       handlers; and also the state monad and the DCG example.
+%    https://people.cs.kuleuven.be/~tom.schrijvers/Research/papers/iclp2013.pdf
 
 :- module(cw631, [test_cw631/0,
                   p0/0,
