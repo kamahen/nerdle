@@ -15,6 +15,7 @@
           ]).
 
 :- use_module(library(lazy_lists)).
+:- use_module(library(readutil), [read_line_to_string/2]).
 
 % TODO: review this comment
 % e.g.:
