@@ -17,11 +17,40 @@
 %  ?- test_cw631.
 
 :- module(cw631, [test_cw631/0,
+                  % fromList/1,
+                  % enumFromTo/2,
+                  % enumFrom/1,
+                  % yield/1,
+                  % init_iterator/2,
+                  % next/3,
+                  % sum_iterator/3,
+                  % sum_first_2/1,
+                  % sum_all/1,
+                  % ask/1,
+                  % with_read/2,
+                  % with_list/2,
+                  % sync/2,
+                  % mapL/2,
+                  % scanSum/1,
+                  % transduce/2,
+                  % doubler/0,
+                  % state_get/1,
+                  % state_put/1,
+                  % run_state/3,
+                  % inc/0,
+                  % c/1,
+                  % dcg_phrase/3,
+                  % ab/1,
+                  % ab/0,
                   p0/0,
-                  p1/0]).
+                  p1/0
+                 ]).
+
+% :- set_prolog_flag(autoload, false).
 
 :- use_module(library(plunit)).
 :- use_module(library(readutil), [read_line_to_string/2]).
+:- use_module(library(check)).
 
 test_cw631 :-
     run_tests([ cw631
@@ -127,11 +156,11 @@ sum_iterator(Iterator, Acc, Sum) :-
     ;   Acc = Sum
     ).
 
-test(t1, Sum == 12) :-
+test(sum_iterator, Sum == 12) :-
     init_iterator(fromList([7,2,3]), It),
     sum_iterator(It, 0, Sum).
 
-test(t2, Sum == 10) :-
+test(sum_iterator, Sum == 10) :-
     % The paper has Sum=15:
     %   this is wrong because EnumFromTo is open range [1,5)
     init_iterator(enumFromTo(1,5), It),
@@ -186,15 +215,15 @@ with_list(L, Goal) :-
     ).
 
 
-test(t3a, Sum == 3) :-
+test(with_list_sum_first_2, Sum == 3) :-
     with_list([1,2,3,4,5],
               sum_first_2(Sum)).
 
-test(t3b, Sum == 15) :-
+test(with_list_sum_all, Sum == 15) :-
     with_list([1,2,3,4,5],
               sum_all(Sum)).
 
-test(t4a, Sum == 49) :-
+test(with_read_sum_first_2, Sum == 49) :-
     open_string("42.
                  7.
                 ",
@@ -203,7 +232,7 @@ test(t4a, Sum == 49) :-
 % |: 42.
 % |: 7.
 % Sum = 49.
-test(t4a2, Sum == 49) :-
+test(with_read_sum_first_2, Sum == 49) :-
     open_string("42.
                  7.
                  666.
@@ -211,7 +240,7 @@ test(t4a2, Sum == 49) :-
                Inputs),
     with_read(Inputs, sum_first_2(Sum)).
 
-test(t4b, Sum == 715) :-
+test(with_read_sum_all, Sum == 715) :-
     open_string("42.
                  7.
                  666.
@@ -225,19 +254,19 @@ test(t4b, Sum == 715) :-
 /* Iterator and iteratee coroutines can easily be played against each
    other: */
 
-test(t5a, Sum == 3) :-
+test(sum_first_2_fromList, Sum == 3) :-
     play(sum_first_2(Sum),
          fromList([1,2])).
 
-test(t5b, Sum == 15) :-
+test(sum_all_fromList, Sum == 15) :-
     play(sum_all(Sum),
          fromList([1,2,3,4,5])).
 
-test(t6a, Sum == 15) :-
+test(sum_first_2_enumFromTo, Sum == 15) :-
     play(sum_first_2(Sum),
          enumFromTo(7,10)).
 
-test(t6b, Sum = 4950) :-
+test(sum_all_enumFromTo, Sum = 4950) :-
     play(sum_all(Sum),
          enumFromTo(0,100)).
 
@@ -264,13 +293,14 @@ mapL([X|Xs], [Y|Ys]) :-
     yield(X),
     ask(Y),
     mapL(Xs, Ys).
+
 scanSum(Acc) :-
     ask(X),
     NAcc is Acc + X,
     yield(NAcc),
     scanSum(NAcc).
 
-test(t7, L == [1,3,6,10]) :-
+test(play_mapL_scanSum, L == [1,3,6,10]) :-
     play(mapL([1,2,3,4],L),
          scanSum(0)).
 
@@ -314,12 +344,12 @@ doubler :-
     yield(NValue),
 doubler.
 
-test(t8a, Sum == 6) :-
+test(play_sum_first_2_transduce_fromList_doubler, Sum == 6) :-
     play(sum_first_2(Sum),
          transduce(fromList([1,2]),
                    doubler)).
 
-test(t8b, Sum == 20) :-
+test(play_sum_all_transduce_fromList_doubler, Sum == 20) :-
     play(sum_all(Sum),
          transduce(fromList([1,2,3,4]),
                    doubler)).
@@ -377,9 +407,9 @@ inc :-
     S1 is S + 1,
     state_put(S1).
 
-test(state1, S == 1) :-
+test(run_state_inc, S == 1) :-
     run_state(inc, 0, S).
-test(state3, S == 4) :-
+test(run_state_inc, S == 4) :-
     run_state((inc, inc, inc), 1, S).
 
 % -- DCG
@@ -420,4 +450,3 @@ test(dcg_state, [nondet, S == 2]) :-
     run_state(dcg_phrase(ab, [a,b,a,b], []), 0, S).
 
 :- end_tests(cw631).
-
