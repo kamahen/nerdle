@@ -1,19 +1,20 @@
 % Examples from the CW631 paper
 % https://www.cs.kuleuven.be/publicaties/rapporten/cw/CW631.pdf
+% and
+% https://people.cs.kuleuven.be/~tom.schrijvers/Research/papers/iclp2013.pdf
 % edited and updated:
 %   - reset/3 has different order of parameters and only sets Cont=0 (not Term)
 %   - call_continuation/1 not needed
 %   - renamed example sum/3 to sum_iterator/3 to avoid name collision with library(clpfdf)
+%   - renamed example phrase/3 to dcg_phrase/3 to avoid name collision with builtin
 %   - some predicates have been extended with a Stream parameter
 %   - added some more examples (e.g., the paper's sum/3 examples only
 %     processed the first 2 items; these have been extended to process
 %     all items, and the sum/3 predicate renamed correspondingly)
-%  Examples have been put into unit-test form; you can run the by
+%   - for all examples, code has been added to allow composing effect handlers
+%   - bug fixes
+%  Examples have been put into unit-test form; you can run them by
 %  ?- test_cw631.
-%
-% TODO: add examples from the ICLP paper, for example composing affect
-%       handlers; and also the state monad and the DCG example.
-%    https://people.cs.kuleuven.be/~tom.schrijvers/Research/papers/iclp2013.pdf
 
 :- module(cw631, [test_cw631/0,
                   p0/0,
@@ -107,6 +108,8 @@ init_iterator(Goal, Iterator) :-
     ->  Iterator = done
     ;   YE = yield(Element)
     ->  Iterator = next(Element, Cont)
+    ;   shift(YE), % propagate unknown
+        init_iterator(Cont, Iterator)
     ).
 
 next(next(Element, Cont), Element, Iterator) :-
@@ -165,6 +168,8 @@ with_read(Stream, Goal) :-
     ->  read(Stream, X),
         X \= end_of_file,
         with_read(Stream, Cont)
+    ;   shift(Term), % propagate unknown
+        with_read(Stream, Cont)
     ).
 
 /* The data source can be modularly replaced: */
@@ -176,6 +181,8 @@ with_list(L, Goal) :-
     ;   Term = ask(X)
     ->  L = [X|T],
         with_list(T, Cont)
+    ;   shift(Term), % propagate unknown
+        with_list(L, Cont)
     ).
 
 
@@ -242,6 +249,7 @@ play(G1, G2) :-
         Cont2 \= 0,
         sync(Term1, Term2),
         play(Cont1, Cont2)
+    % TODO: propagate unknown?
     ).
 
 sync(ask(X), yield(X)).
@@ -294,6 +302,7 @@ transduce_(ask(Value), ContT, IG) :-
     ->  true
     ;   TermI = yield(Value),
         transduce(ContI, ContT)
+    % TODO: propagate unknown?
     ).
 
 /* The doubler/2 predicate is an example of a transducer that doubles
@@ -341,6 +350,74 @@ test(t8b, Sum == 20) :-
 % throw_(Ball) :-
 %     copy_term(Ball, BC),
 %     shift(ball(BC)).
+
+%%% DCG and state monad from ICLP paper %%%
+
+% -- State
+
+state_get(S) :- shift(get(S)).
+
+state_put(S) :- shift(put(S)).
+
+run_state(Goal, Sin, Sout) :-
+    reset(Goal, Command, Cont),
+    (   Cont == 0
+    ->  Sout = Sin
+    ;   Command = get(S)
+    ->  S = Sin,
+        run_state(Cont, Sin, Sout)
+    ;   Command = put(S)
+    ->  run_state(Cont, S, Sout)
+    ;   shift(Command),  % propagate unknown
+        run_state(Cont, Sin, Sout)
+    ).
+
+inc :-
+    state_get(S),
+    S1 is S + 1,
+    state_put(S1).
+
+test(state1, S == 1) :-
+    run_state(inc, 0, S).
+test(state3, S == 4) :-
+    run_state((inc, inc, inc), 1, S).
+
+% -- DCG
+
+c(E) :- shift(c(E)).
+
+dcg_phrase(Goal, Lin, Lout) :-
+    reset(Goal, Term, Cont),
+    (   Cont == 0
+    ->  Lin = Lout
+    ;   Term = c(E)
+    ->  Lin = [E|Lmid],
+        dcg_phrase(Cont, Lmid, Lout)
+    ;   shift(Term),  % propagate unknown
+        dcg_phrase(Cont, Lin, Lout)
+    ).
+
+ab(0).
+ab(N) :-
+    c(a),
+    c(b),
+    ab(M),
+    N is M + 1.
+
+test(dcg, [nondet, N == 2]) :-
+    dcg_phrase(ab(N), [a,b,a,b], []).
+test(dcg, [nondet, L == [a,b,a,b,a,b]]) :-
+    dcg_phrase(ab(3), L, []).
+
+ab.
+ab :-
+    c(a),
+    c(b),
+    inc,
+    ab.
+
+test(dcg_state, [nondet, S == 2]) :-
+    run_state(dcg_phrase(ab, [a,b,a,b], []), 0, S).
 
 :- end_tests(cw631).
 
