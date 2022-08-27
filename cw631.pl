@@ -17,6 +17,7 @@
 %  ?- test_cw631.
 
 :- module(cw631, [test_cw631/0,
+                  reset_shift/4,
                   % fromList/1,
                   % enumFromTo/2,
                   % enumFrom/1,
@@ -91,6 +92,31 @@ r1(Cont, ContAccu, Term) :-
     Term = rterm,
     Cont = ( w(end_r), ContAccu ).
 
+%%% General reset-shift %%%
+
+% reset_shift/4 is not in either of the papers, but encapuslates a
+%     general form that almost all the predicates use (so far, the
+%     exception is transduce/2, and even that is similar, so there may
+%     be an even more general form.
+
+:- meta_predicate reset_shift(:, 3, 1, ?).
+
+%! reset_shift(:Goal, :Switch, :OnEnd, +Args).
+% Call reset/3 with Goal:
+% - if Goal called shift(Term), then call Switch with Term,
+%   the Continuation from reset/3, and Args. If Switch does
+%   not succeed at least once, propagate the Term.
+% - otherwise call OnEnd with Args.
+reset_shift(Goal, Switch, OnEnd, Args) :-
+    reset(Goal, Term, Cont),
+    (   Cont == 0
+    ->  call(OnEnd, Args)
+    ;   call(Switch, Term, Cont, Args)
+    *-> true
+    ;   shift(Term),                % propagate unknown
+        reset_shift(Cont, Switch, OnEnd, Args)
+    ).
+
 :- begin_tests(cw631).
 
 %%% Iterators %%%
@@ -132,6 +158,19 @@ yield(Term) :-
     shift(yield(Term)).
 
 init_iterator(Goal, Iterator) :-
+    reset_shift(Goal, init_iterator_switch, init_iterator_on_end, [Iterator]).
+
+% init_iterator_switch(?Term, :Cont, Args).
+init_iterator_switch(yield(Element), Cont, [next(Element, Cont)]).
+init_iterator_on_end([done]).
+
+next(next(Element, Cont), Element, Iterator) :-
+    init_iterator(Cont, Iterator).
+
+% This is the original code, Without using reset_shift/4:
+
+:- if(false). % commented out original code from paper
+init_iterator(Goal, Iterator) :-
     reset(Goal, YE, Cont),
     (   Cont == 0
     ->  Iterator = done
@@ -140,9 +179,7 @@ init_iterator(Goal, Iterator) :-
     ;   shift(YE), % propagate unknown
         init_iterator(Cont, Iterator)
     ).
-
-next(next(Element, Cont), Element, Iterator) :-
-    init_iterator(Cont, Iterator).
+:- endif. % commented out original code from paper
 
 /* Consumers of iterators are independent of the particular
    generator. Note that in a sense yield/1 generalizes Prolog’s
