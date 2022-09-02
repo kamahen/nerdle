@@ -13,15 +13,18 @@
 %     all items, and the sum/3 predicate renamed correspondingly)
 %   - for all examples, code has been added to allow composing effect handlers
 %   - bug fixes
+%   - predicate names have been cheanged from camelCase to snake_case
+%     (variable names are CamelCase).
 %  Examples have been put into unit-test form; you can run them by
 %  ?- test_cw631.
 
 :- module(cw631, [test_cw631/0,
                   reset_shift/4,
+                  reset_shift/5,
                   true_false/2,
-                  % fromList/1,
-                  % enumFromTo/2,
-                  % enumFrom/1,
+                  % from_list/1,
+                  % enum_from_to/2,
+                  % enum_from/1,
                   % yield/1,
                   % init_iterator/2,
                   % next/3,
@@ -32,8 +35,8 @@
                   % with_read/2,
                   % with_list/2,
                   % sync/2,
-                  % mapL/2,
-                  % scanSum/1,
+                  % map_l/2,
+                  % scan_sum/1,
                   % transduce/2,
                   % doubler/0,
                   % state_get/1,
@@ -49,7 +52,8 @@
                  ]).
 
 :- meta_predicate
-    reset_shift(0, 3, 1, ?),
+    reset_shift(0, 4, 1, +),    % (:Goal, :Catch, :End, +Args:list)
+    reset_shift(0, 1, 3, 1, +), % (:Goal, :OkTerm, :Catch, :End, +Args:list)
     true_false(0, -).
 
 % :- set_prolog_flag(autoload, false).
@@ -104,18 +108,27 @@ r1(Cont, ContAccu, Term) :-
 %     exception is transduce/2, and even that is similar, so there may
 %     be an even more general form.
 
-%! reset_shift(:Goal, :Catch, :End, +Args).
-% Call reset/3 with Goal:
 
-% - if Goal called shift(Term), then call Catch with Term, the
-%   Continuation from reset/3, and Args. If Catch does not succeed at
-%   least once, propagate the Term. There is one more argument:
-%   Success. This is used to handle the situation where the Term
-%   matched, so we don't want to propagate the Term; but the Catch
-%   goal failed. Set Success to `true` to indicate that it succeeded
-%   and `false` if it failed. See true_false/2 for how to make a
-%   regular predicate return `true` or `false`.
+%! reset_shift(:Goal, :Catch, :End, +Args:list).
+
+% Calls reset/3 ("prompt") with Goal:
+
+% - if Goal calls shift/1 [control(Term)], call Catch with:
+%     Term from shift/1
+%     Continuation from reset/3
+%     Args
+%     Success (`true` or `false`) - whether reset_shift/4 should
+%         succeed or fail. This is to handle the situation where Term
+%         shouldn't be propagated because we've handled it (Catch
+%         shuld fail if it couldn't handle the Term and therefore the
+%         Term should be propagated).  See true_false/2 for how to
+%         make a regular predicate return `true` or `false`.
+%   If Catch does not succeed at least once, propagate the Term.
 % - if Goal didn't call shift/1, call End with Args.
+
+% prompt_control(Goal, Catch, End, Args) :-
+%     reset_shift(Goal, Catch, End, Args).
+
 reset_shift(Goal, Catch, End, Args) :-
     reset(Goal, Term, Cont),
     (   Cont == 0
@@ -124,6 +137,17 @@ reset_shift(Goal, Catch, End, Args) :-
     *-> Success == true
     ;   shift(Term),                % propagate unknown
         reset_shift(Cont, Catch, End, Args)
+    ).
+
+%! reset_shift(:Goal, :OkTerm, :Catch, :End, +Args:list).
+reset_shift(Goal, OkTerm, Catch, End, Args) :-
+    reset(Goal, Term, Cont),
+    (   Cont == 0
+    ->  call(End, Args)
+    ;   call(OkTerm, Term) % TODO: memberchk(Term, OkTerm)
+    ->  call(Catch, Term, Cont, Args)
+    ;   shift(Term),            % propagate unknown
+        reset_shift(Cont, OkTerm, Catch, End, Args)
     ).
 
 true_false(Goal, Success) :-
@@ -153,23 +177,23 @@ test(true_false, S == false) :-
    yield/1 operation in Prolog, which allows us to define various
    kinds of generators: */
 
-fromList([]).
-fromList([X|Xs]) :-
+from_list([]).
+from_list([X|Xs]) :-
     yield(X),
-    fromList(Xs).
+    from_list(Xs).
 
-enumFromTo(L, U) :-
+enum_from_to(L, U) :-
     (   L < U
     ->  yield(L),
         NL is L + 1,
-        enumFromTo(NL, U)
+        enum_from_to(NL, U)
     ;   true
     ).
 
-enumFrom(L) :-
+enum_from(L) :-
     yield(L),
     NL is L + 1,
-    enumFrom(NL).
+    enum_from(NL).
 
 %%% Generators %%%
 
@@ -182,19 +206,6 @@ enumFrom(L) :-
 yield(Term) :-
     shift(yield(Term)).
 
-init_iterator(Goal, Iterator) :-
-    reset_shift(Goal, init_iterator_catch, init_iterator_end, [Iterator]).
-
-% init_iterator_catch(?Term, :Cont, Args, -Success).
-init_iterator_catch(yield(Element), Cont, [next(Element, Cont)], true).
-
-init_iterator_end([done]).
-
-next(next(Element, Cont), Element, Iterator) :-
-    init_iterator(Cont, Iterator).
-
-% This is the original code, Without using reset_shift/4:
-
 :- if(false). % commented out original code from paper
 init_iterator(Goal, Iterator) :-
     reset(Goal, YE, Cont),
@@ -206,6 +217,24 @@ init_iterator(Goal, Iterator) :-
         init_iterator(Cont, Iterator)
     ).
 :- endif. % commented out original code from paper
+
+init_iterator(Goal, Iterator) :-
+    reset_shift(Goal, init_iterator_catch, init_iterator_end, [Iterator]).
+
+%! init_iterator_catch(?Term, :Cont, Args, -Success).
+init_iterator_catch(yield(Element), Cont, [next(Element, Cont)], true).
+
+init_iterator_end([done]).
+
+next(next(Element, Cont), Element, Iterator) :-
+    init_iterator(Cont, Iterator).
+
+init_iterator_(Goal, Iterator) :-
+    reset_shift(Goal, init_iterator_ok_,
+                init_iterator_catch_, init_iterator_end_, [Iterator]).
+init_iterator_ok_(yield(_)).
+init_iterator_catch_(yield(Element), Cont, [next(Element, Cont)]).
+init_iterator_end_([done]).
 
 /* Consumers of iterators are independent of the particular
    generator. Note that in a sense yield/1 generalizes Prolog’s
@@ -220,13 +249,13 @@ sum_iterator(Iterator, Acc, Sum) :-
     ).
 
 test(sum_iterator, Sum == 12) :-
-    init_iterator(fromList([7,2,3]), It),
+    init_iterator(from_list([7,2,3]), It),
     sum_iterator(It, 0, Sum).
 
 test(sum_iterator, Sum == 10) :-
     % The paper has Sum=15:
     %   this is wrong because EnumFromTo is open range [1,5)
-    init_iterator(enumFromTo(1,5), It),
+    init_iterator(enum_from_to(1,5), It),
     sum_iterator(It, 0, Sum).
 
 /* Iteratees are the opposite of iterators: they suspend to request
@@ -347,31 +376,35 @@ test(with_read_sum_all, Sum == 715) :-
 /* Iterator and iteratee coroutines can easily be played against each
    other: */
 
-test(sum_first_2_fromList, Sum == 3) :-
+test(sum_first_2_from_list, Sum == 3) :-
     play(sum_first_2(Sum),
-         fromList([1,2])).
-
-test(sum_all_fromList, Sum == 15) :-
-    play(sum_all(Sum),
-         fromList([1,2,3,4,5])).
-
-test(sum_first_2_enumFromTo, Sum == 15) :-
+         from_list([1,2])).
+test(sum_first_2_from_list, Sum == 3) :-
     play(sum_first_2(Sum),
-         enumFromTo(7,10)).
+         from_list([1,2,3])).
 
-test(sum_all_enumFromTo, Sum = 4950) :-
+test(sum_all_from_list, Sum == 15) :-
     play(sum_all(Sum),
-         enumFromTo(0,100)).
+         from_list([1,2,3,4,5])).
+
+test(sum_first_2_enum_from_to, Sum == 15) :-
+    play(sum_first_2(Sum),
+         enum_from_to(7,10)).
+
+test(sum_all_enum_from_to, Sum = 4950) :-
+    play(sum_all(Sum),
+         enum_from_to(0,100)).
 
 play(G1, G2) :-
     reset(G1, Term1, Cont1),
     (   Cont1 == 0
     ->  true
-    ;   reset(G2, Term2, Cont2),
+    ;   % TODO: propagate Term1 if not ask(_) or yield(_)
+        reset(G2, Term2, Cont2),
         Cont2 \= 0,
+        % TODO: propagate Term2 if not ask(_) or yield(_)
         sync(Term1, Term2),
         play(Cont1, Cont2)
-    % TODO: propagate unknown?
     ).
 
 sync(ask(X), yield(X)).
@@ -381,21 +414,21 @@ sync(yield(X), ask(X)).
    in two directions.
   */
 
-mapL([], []).
-mapL([X|Xs], [Y|Ys]) :-
+map_l([], []).
+map_l([X|Xs], [Y|Ys]) :-
     yield(X),
     ask(Y),
-    mapL(Xs, Ys).
+    map_l(Xs, Ys).
 
-scanSum(Acc) :-
+scan_sum(Acc) :-
     ask(X),
     NAcc is Acc + X,
     yield(NAcc),
-    scanSum(NAcc).
+    scan_sum(NAcc).
 
-test(play_mapL_scanSum, L == [1,3,6,10]) :-
-    play(mapL([1,2,3,4],L),
-         scanSum(0)).
+test(play_map_l_scan_sum, L == [1,3,6,10]) :-
+    play(map_l([1,2,3,4],L),
+         scan_sum(0)).
 
 /* Compare this coroutine-based approach to Sterling and
    Kirschenbaum’s approach of applying techniques to
@@ -415,7 +448,7 @@ test(play_mapL_scanSum, L == [1,3,6,10]) :-
 transduce(IG, TG) :-
     reset(TG, TermT, ContT),
     transduce_(TermT, ContT, IG).
-transduce_(0, _, _).
+transduce_(_, 0, _) :- !. % <<== bug in original that checked for TermT = 0 <<==
 transduce_(yield(NValue), ContT, IG) :-
     yield(NValue),
     transduce(IG, ContT).
@@ -423,9 +456,10 @@ transduce_(ask(Value), ContT, IG) :-
     reset(IG, TermI, ContI),
     (   ContI == 0
     ->  true
-    ;   TermI = yield(Value),
-        transduce(ContI, ContT)
-    % TODO: propagate unknown?
+    ;   TermI = yield(Value)
+    *-> transduce(ContI, ContT)
+    ;   shift(Term),                % propagate unknown
+        transduce_(Term, ContT, IG) % TODO: is this correct?
     ).
 
 /* The doubler/2 predicate is an example of a transducer that doubles
@@ -437,14 +471,14 @@ doubler :-
     yield(NValue),
 doubler.
 
-test(play_sum_first_2_transduce_fromList_doubler, Sum == 6) :-
+test(play_sum_first_2_transduce_from_list_doubler, Sum == 6) :-
     play(sum_first_2(Sum),
-         transduce(fromList([1,2]),
+         transduce(from_list([1,2]),
                    doubler)).
 
-test(play_sum_all_transduce_fromList_doubler, Sum == 20) :-
+test(play_sum_all_transduce_from_list_doubler, Sum == 20) :-
     play(sum_all(Sum),
-         transduce(fromList([1,2,3,4]),
+         transduce(from_list([1,2,3,4]),
                    doubler)).
 
 
