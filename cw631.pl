@@ -19,9 +19,7 @@
 %  ?- test_cw631.
 
 :- module(cw631, [test_cw631/0,
-                  reset_shift/4,
                   reset_shift/5,
-                  true_false/2,
                   % from_list/1,
                   % enum_from_to/2,
                   % enum_from/1,
@@ -45,16 +43,14 @@
                   % inc/0,
                   % c/1,
                   % dcg_phrase/3,
+                  % dcg_phrase/2,
                   % ab/1,
                   % ab/0,
                   p0/0,
                   p1/0
                  ]).
 
-:- meta_predicate
-    reset_shift(0, 4, 1, +),    % (:Goal, :Catch, :End, +Args:list)
-    reset_shift(0, 1, 3, 1, +), % (:Goal, :OkTerm, :Catch, :End, +Args:list)
-    true_false(0, -).
+:- meta_predicate reset_shift(0, 1, 3, 1, +). % (:Goal, :OkTerm, :Catch, :End, +Args:list)
 
 % :- set_prolog_flag(autoload, false).
 
@@ -103,70 +99,38 @@ r1(Cont, ContAccu, Term) :-
 
 %%% General reset-shift %%%
 
-% reset_shift/4 is not in either of the papers, but encapuslates a
+% reset_shift/5 is not in either of the papers, but encapuslates a
 %     general form that almost all the predicates use (so far, the
 %     exception is transduce/2, and even that is similar, so there may
 %     be an even more general form.
 
-
-%! reset_shift(:Goal, :Catch, :End, +Args:list).
+%! reset_shift(:Goal, :OkTerm, :Catch, :End, +Args:list).
 
 % Calls reset/3 ("prompt") with Goal:
 
-% - if Goal calls shift/1 [control(Term)], call Catch with:
+% - if Goal calls shift/1 [control(Term)], first check
+%   that this is a Term we handle (using OkTerm/1), then
+%   call Catch with:
 %     Term from shift/1
 %     Continuation from reset/3
 %     Args
-%     Success (`true` or `false`) - whether reset_shift/4 should
-%         succeed or fail. This is to handle the situation where Term
-%         shouldn't be propagated because we've handled it (Catch
-%         shuld fail if it couldn't handle the Term and therefore the
-%         Term should be propagated).  See true_false/2 for how to
-%         make a regular predicate return `true` or `false`.
-%   If Catch does not succeed at least once, propagate the Term.
+%   If OkTerm(Term) does not succeed, propagate the Term.
 % - if Goal didn't call shift/1, call End with Args.
 
-% prompt_control(Goal, Catch, End, Args) :-
-%     reset_shift(Goal, Catch, End, Args).
+% prompt_control(Goal, OkTerm, Catch, End, Args) :-
+%     reset_shift(Goal, OkTerm, Catch, End, Args).
 
-reset_shift(Goal, Catch, End, Args) :-
-    reset(Goal, Term, Cont),
-    (   Cont == 0
-    ->  call(End, Args)
-    ;   call(Catch, Term, Cont, Args, Success)
-    *-> Success == true
-    ;   shift(Term),                % propagate unknown
-        reset_shift(Cont, Catch, End, Args)
-    ).
-
-%! reset_shift(:Goal, :OkTerm, :Catch, :End, +Args:list).
 reset_shift(Goal, OkTerm, Catch, End, Args) :-
     reset(Goal, Term, Cont),
     (   Cont == 0
     ->  call(End, Args)
-    ;   call(OkTerm, Term) % TODO: memberchk(Term, OkTerm)
+    ;   call(OkTerm, Term) % TODO: memberchk(Term, OkTerm)?
     ->  call(Catch, Term, Cont, Args)
     ;   shift(Term),            % propagate unknown
         reset_shift(Cont, OkTerm, Catch, End, Args)
     ).
 
-true_false(Goal, Success) :-
-    (   Goal
-    *-> Success = true
-    ;   Success = false
-    ).
-
 :- begin_tests(cw631).
-
-pp(1). % For testing true_false/2.
-pp(2).
-
-test(true_false, all(P-S == [1-true, 2-true])) :-
-    true_false(pp(P), S).
-test(true_false, S = true) :-
-    true_false(pp(2), S).
-test(true_false, S == false) :-
-    true_false(pp(3), S).
 
 %%% Iterators %%%
 
@@ -207,6 +171,7 @@ yield(Term) :-
     shift(yield(Term)).
 
 :- if(false). % commented out original code from paper
+
 init_iterator(Goal, Iterator) :-
     reset(Goal, YE, Cont),
     (   Cont == 0
@@ -216,25 +181,24 @@ init_iterator(Goal, Iterator) :-
     ;   shift(YE), % propagate unknown
         init_iterator(Cont, Iterator)
     ).
-:- endif. % commented out original code from paper
+
+:- else.
 
 init_iterator(Goal, Iterator) :-
-    reset_shift(Goal, init_iterator_catch, init_iterator_end, [Iterator]).
+    reset_shift(Goal, init_iterator_ok_term, init_iterator_catch,
+                init_iterator_end, [Iterator]).
 
-%! init_iterator_catch(?Term, :Cont, Args, -Success).
-init_iterator_catch(yield(Element), Cont, [next(Element, Cont)], true).
+init_iterator_ok_term(yield(_)).
+
+%! init_iterator_catch(?Term, :Cont, Args).
+init_iterator_catch(yield(Element), Cont, [next(Element, Cont)]).
 
 init_iterator_end([done]).
 
+:- endif. % commented out original code from paper
+
 next(next(Element, Cont), Element, Iterator) :-
     init_iterator(Cont, Iterator).
-
-init_iterator_(Goal, Iterator) :-
-    reset_shift(Goal, init_iterator_ok_,
-                init_iterator_catch_, init_iterator_end_, [Iterator]).
-init_iterator_ok_(yield(_)).
-init_iterator_catch_(yield(Element), Cont, [next(Element, Cont)]).
-init_iterator_end_([done]).
 
 /* Consumers of iterators are independent of the particular
    generator. Note that in a sense yield/1 generalizes Prolog’s
@@ -282,6 +246,7 @@ ask(X) :-
     shift(ask(X)).
 
 :- if(false). % commented out original code from paper
+
 with_read(Stream, Goal) :-
     reset(Goal, Term, Cont),
     (   Cont == 0
@@ -293,25 +258,27 @@ with_read(Stream, Goal) :-
     ;   shift(Term), % propagate unknown
         with_read(Stream, Cont)
     ).
-:- endif. % commented out original code from paper
+
+:- else.
 
 with_read(Stream, Goal) :-
-    reset_shift(Goal, with_read_catch, with_read_end, [Stream]).
+    reset_shift(Goal, with_read_ok_term, with_read_catch, with_read_end, [Stream]).
 
-with_read_catch(ask(X), Cont, [Stream], Success) :-
-    % TODO: rewrite this using true_false/2
-    (   read(Stream, X),
-        X \= end_of_file
-    ->  Success = true,
-        with_read(Stream, Cont)
-    ;   Success = false
-    ).
+with_read_ok_term(ask(_)).
+
+with_read_catch(ask(X), Cont, [Stream]) :-
+    read(Stream, X),
+    X \= end_of_file,
+    with_read(Stream, Cont).
 
 with_read_end([_Stream]).
+
+:- endif. % commented out original code from paper
 
 /* The data source can be modularly replaced: */
 
 :- if(false). % commented out original code from paper
+
 with_list(L, Goal) :-
     reset(Goal, Term, Cont),
     (   Cont == 0
@@ -322,20 +289,21 @@ with_list(L, Goal) :-
     ;   shift(Term), % propagate unknown
         with_list(L, Cont)
     ).
-:- endif. % commented out original code from paper
+
+:- else.
 
 with_list(L, Goal) :-
-    reset_shift(Goal, with_list_catch, write_read_end, [L]).
+    reset_shift(Goal, with_list_ok_term, with_list_catch, write_read_end, [L]).
 
-with_list_catch(ask(X), Cont, [L], Success) :-
-    % TODO: rewrite this using true_false/2
-    (   L = [X|T]
-    ->  Success = true,
-        with_list(T, Cont)
-    ;   Success = false
-    ).
+with_list_ok_term(ask(_)).
+
+with_list_catch(ask(X), Cont, [L]) :-
+    L = [X|T],
+    with_list(T, Cont).
 
 write_read_end([_L]).
+
+:- endif.                     % commented out original code from paper
 
 test(with_list_sum_first_2, Sum == 3) :-
     with_list([1,2,3,4,5],
@@ -517,6 +485,7 @@ state_get(S) :- shift(get(S)).
 state_put(S) :- shift(put(S)).
 
 :- if(false). % commented out original code from paper
+
 run_state(Goal, Sin, Sout) :-
     reset(Goal, Command, Cont),
     (   Cont == 0
@@ -529,15 +498,21 @@ run_state(Goal, Sin, Sout) :-
     ;   shift(Command),  % propagate unknown
         run_state(Cont, Sin, Sout)
     ).
-:- endif. % commented out original code from paper
+
+:- else.
 
 run_state(Goal, Sin, Sout) :-
-    reset_shift(Goal, run_state_catch, run_state_end, [Sin, Sout]).
+    reset_shift(Goal, run_state_ok_term, run_state_catch, run_state_end, [Sin, Sout]).
 
-run_state_catch(get(S), Cont, [S, Sout], true) :- run_state(Cont, S, Sout).
-run_state_catch(put(S), Cont, [_, Sout], true) :- run_state(Cont, S, Sout).
+run_state_ok_term(put(_)).
+run_state_ok_term(get(_)).
+
+run_state_catch(get(S), Cont, [S, Sout]) :- run_state(Cont, S, Sout).
+run_state_catch(put(S), Cont, [_, Sout]) :- run_state(Cont, S, Sout).
 
 run_state_end([S, S]).
+
+:- endif. % commented out original code from paper
 
 inc :-
     state_get(S),
@@ -553,7 +528,11 @@ test(run_state_inc, S == 4) :-
 
 c(E) :- shift(c(E)).
 
+dcg_phrase(Goal, Lin) :-
+    dcg_phrase(Goal, Lin, []).
+
 :- if(false). % commented out original code from paper
+
 dcg_phrase(Goal, Lin, Lout) :-
     reset(Goal, Term, Cont),
     (   Cont == 0
@@ -561,18 +540,24 @@ dcg_phrase(Goal, Lin, Lout) :-
     ;   Term = c(E)
     ->  Lin = [E|Lmid],
         dcg_phrase(Cont, Lmid, Lout)
-    ;   shift(Term),  % propagate unknown
+    ;   shift(Term),            % propagate unknown
         dcg_phrase(Cont, Lin, Lout)
     ).
-:- endif. % commented out original code from paper
+
+:- else.
 
 dcg_phrase(Goal, Lin, Lout) :-
-    reset_shift(Goal, dcg_phrase_catch, dcg_phrase_end, [Lin, Lout]).
+    reset_shift(Goal, dcg_phrase_ok_term, dcg_phrase_catch, dcg_phrase_end, [Lin, Lout]).
 
-dcg_phrase_catch(c(E), Cont, [[E|Lmid], Lout], true) :-
+dcg_phrase_ok_term(c(_)).
+
+dcg_phrase_catch(c(E), Cont, [[E|Lmid], Lout]) :-
     dcg_phrase(Cont, Lmid, Lout).
 
 dcg_phrase_end([L, L]).
+
+:- endif. % commented out original code from paper
+
 
 ab(0).
 ab(N) :-
@@ -582,9 +567,9 @@ ab(N) :-
     N is M + 1.
 
 test(dcg, [nondet, N == 2]) :-
-    dcg_phrase(ab(N), [a,b,a,b], []).
+    dcg_phrase(ab(N), [a,b,a,b]).
 test(dcg, [nondet, L == [a,b,a,b,a,b]]) :-
-    dcg_phrase(ab(3), L, []).
+    dcg_phrase(ab(3), L).
 
 ab.
 ab :-
@@ -594,6 +579,25 @@ ab :-
     ab.
 
 test(dcg_state, [nondet, S == 2]) :-
-    run_state(dcg_phrase(ab, [a,b,a,b], []), 0, S).
+    run_state(dcg_phrase(ab, [a,b,a,b]), 0, S).
+
+%%%% Additional predicates and tests (not in the paper) %%%%%
+
+test(from_list_1, [a,b,c] == [X1,X2,X3]) :-
+    play(from_list([a,b,c]),
+         ( ask(X1), ask(X2), ask(X3) )).
+
+a_or_b :- c(a).
+a_or_b :- c(b).
+
+test(a_or_b, [all(X == [[a],[b]])]) :-
+    dcg_phrase(a_or_b, X).
+
+a_fail_or_b :- c(a), fail.
+a_fail_or_b :- c(b).
+
+test(a_fail_or_b, [all(X == [[b]])]) :-
+    dcg_phrase(a_fail_or_b, X).
+
 
 :- end_tests(cw631).
