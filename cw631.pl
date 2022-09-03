@@ -20,6 +20,7 @@
 
 :- module(cw631, [test_cw631/0,
                   reset_shift/5,
+                  allowed_terms/2,
                   % from_list/1,
                   % enum_from_to/2,
                   % enum_from/1,
@@ -114,7 +115,8 @@ r1(Cont, ContAccu, Term) :-
 %     Term from shift/1
 %     Continuation from reset/3
 %     Args
-%   If OkTerm(Term) does not succeed, propagate the Term.
+%   If OkTerm(Term) does not succeed, propagate the Term (you can use
+%     =/2 or allowed_terms/2 for most common situations).
 % - if Goal didn't call shift/1, call End with Args.
 
 % prompt_control(Goal, OkTerm, Catch, End, Args) :-
@@ -125,10 +127,16 @@ reset_shift(Goal, OkTerm, Catch, End, Args) :-
     (   Cont == 0
     ->  call(End, Args)
     ;   call(OkTerm, Term) % TODO: memberchk(Term, OkTerm)?
-    ->  call(Catch, Term, Cont, Args)
+    *-> call(Catch, Term, Cont, Args)
     ;   shift(Term),            % propagate unknown
         reset_shift(Cont, OkTerm, Catch, End, Args)
     ).
+
+%! allowed_terms(+ListOfAllowed:list, +Term)is semidet.
+% For the `OkTerm` parameter to reset_shift/5: does a lookup
+% in the list and either succeeds deterministically or fails.
+allowed_terms(ListOfAllowed, Term) :-
+    memberchk(Term, ListOfAllowed).
 
 :- begin_tests(cw631).
 
@@ -185,10 +193,8 @@ init_iterator(Goal, Iterator) :-
 :- else.
 
 init_iterator(Goal, Iterator) :-
-    reset_shift(Goal, init_iterator_ok_term, init_iterator_catch,
+    reset_shift(Goal, =(yield(_)), init_iterator_catch,
                 init_iterator_end, [Iterator]).
-
-init_iterator_ok_term(yield(_)).
 
 %! init_iterator_catch(?Term, :Cont, Args).
 init_iterator_catch(yield(Element), Cont, [next(Element, Cont)]).
@@ -262,9 +268,7 @@ with_read(Stream, Goal) :-
 :- else.
 
 with_read(Stream, Goal) :-
-    reset_shift(Goal, with_read_ok_term, with_read_catch, with_read_end, [Stream]).
-
-with_read_ok_term(ask(_)).
+    reset_shift(Goal, =(ask(_)), with_read_catch, with_read_end, [Stream]).
 
 with_read_catch(ask(X), Cont, [Stream]) :-
     read(Stream, X),
@@ -293,9 +297,7 @@ with_list(L, Goal) :-
 :- else.
 
 with_list(L, Goal) :-
-    reset_shift(Goal, with_list_ok_term, with_list_catch, write_read_end, [L]).
-
-with_list_ok_term(ask(_)).
+    reset_shift(Goal, =(ask(_)), with_list_catch, write_read_end, [L]).
 
 with_list_catch(ask(X), Cont, [L]) :-
     L = [X|T],
@@ -502,8 +504,10 @@ run_state(Goal, Sin, Sout) :-
 :- else.
 
 run_state(Goal, Sin, Sout) :-
-    reset_shift(Goal, run_state_ok_term, run_state_catch, run_state_end, [Sin, Sout]).
+    reset_shift(Goal, allowed_terms([put(_),get(_)]),
+                run_state_catch, run_state_end, [Sin, Sout]).
 
+% Instead of `allowed_terms([put(_),get(-)])`, can use run_state_ok_term`:
 run_state_ok_term(put(_)).
 run_state_ok_term(get(_)).
 
@@ -547,9 +551,7 @@ dcg_phrase(Goal, Lin, Lout) :-
 :- else.
 
 dcg_phrase(Goal, Lin, Lout) :-
-    reset_shift(Goal, dcg_phrase_ok_term, dcg_phrase_catch, dcg_phrase_end, [Lin, Lout]).
-
-dcg_phrase_ok_term(c(_)).
+    reset_shift(Goal, =(c(_)), dcg_phrase_catch, dcg_phrase_end, [Lin, Lout]).
 
 dcg_phrase_catch(c(E), Cont, [[E|Lmid], Lout]) :-
     dcg_phrase(Cont, Lmid, Lout).
