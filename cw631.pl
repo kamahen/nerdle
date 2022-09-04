@@ -51,10 +51,11 @@
                   p1/0
                  ]).
 
-:- meta_predicate reset_shift(0, 1, 3, 1, +). % (:Goal, :OkTerm, :Catch, :End, +Args:list)
+:- meta_predicate reset_shift(0, 1, 3, 1, +). % (:Goal, :CatchTerm, :Catch, :End, +Args)
 
 % :- set_prolog_flag(autoload, false).
 
+:- use_module(library(yall)).
 :- use_module(library(plunit)).
 :- use_module(library(readutil), [read_line_to_string/2]).
 :- use_module(library(check)).
@@ -101,42 +102,45 @@ r1(Cont, ContAccu, Term) :-
 %%% General reset-shift %%%
 
 % reset_shift/5 is not in either of the papers, but encapuslates a
-%     general form that almost all the predicates use (so far, the
-%     exception is transduce/2, and even that is similar, so there may
-%     be an even more general form.
+%     general form that almost all the predicates use (so far,
+%     transduce/2 doesn't use reset_shift/5, and even that is similar,
+%     so there may be an even more general form than reset_shift/5).
 
-%! reset_shift(:Goal, :OkTerm, :Catch, :End, +Args:list).
+%! reset_shift(:Goal, :CatchTerm, :Catch, :End, +Args).
 
-% Calls reset/3 ("prompt") with Goal:
+% Calls Goal (using reset/3 or "prompt").
+% - If Goal didn't call shift/1, call End with Args.
+% - If Goal called shift/1, call Catch with:
+%     - Term from shift/1
+%     - Continuation from reset/3
+%     Typically, Catch will tail-call reset_shift/5, passing
+%     it the Continuation from reset/3.
+% - Before calling Goal, first check that this is a Term we handle
+%   (using CatchTerm/1) - if CatchTerm/1 fails, then propagate the
+%   Term.  If only a single form of Term is handled, you can use =/2
+%   for the CatchTerm predicate; otherwise, allowed_terms/2 is
+%   provided for convenience.
 
-% - if Goal calls shift/1 [control(Term)], first check
-%   that this is a Term we handle (using OkTerm/1), then
-%   call Catch with:
-%     Term from shift/1
-%     Continuation from reset/3
-%     Args
-%   If OkTerm(Term) does not succeed, propagate the Term (you can use
-%     =/2 or allowed_terms/2 for most common situations).
-% - if Goal didn't call shift/1, call End with Args.
-
-% prompt_control(Goal, OkTerm, Catch, End, Args) :-
-%     reset_shift(Goal, OkTerm, Catch, End, Args).
-
-reset_shift(Goal, OkTerm, Catch, End, Args) :-
+reset_shift(Goal, CatchTerm, Catch, End, Args) :-
     reset(Goal, Term, Cont),
     (   Cont == 0
     ->  call(End, Args)
-    ;   call(OkTerm, Term) % TODO: memberchk(Term, OkTerm)?
+    ;   call(CatchTerm, Term)
     *-> call(Catch, Term, Cont, Args)
     ;   shift(Term),            % propagate unknown
-        reset_shift(Cont, OkTerm, Catch, End, Args)
+        reset_shift(Cont, CatchTerm, Catch, End, Args)
     ).
 
 %! allowed_terms(+ListOfAllowed:list, +Term)is semidet.
-% For the `OkTerm` parameter to reset_shift/5: does a lookup
-% in the list and either succeeds deterministically or fails.
+% For the `CatchTerm` parameter to reset_shift/5: does a lookup in the
+% list and either succeeds deterministically or fails.
 allowed_terms(ListOfAllowed, Term) :-
     memberchk(Term, ListOfAllowed).
+
+%! prompt_control(:Goal, :CatchTerm, :Catch, :End, +Args:list).
+% An alternative name for reset_catch/5:
+prompt_control(Goal, CatchTerm, Catch, End, Args) :-
+    reset_shift(Goal, CatchTerm, Catch, End, Args).
 
 :- begin_tests(cw631).
 
@@ -193,13 +197,11 @@ init_iterator(Goal, Iterator) :-
 :- else.
 
 init_iterator(Goal, Iterator) :-
-    reset_shift(Goal, =(yield(_)), init_iterator_catch,
-                init_iterator_end, [Iterator]).
-
-%! init_iterator_catch(?Term, :Cont, Args).
-init_iterator_catch(yield(Element), Cont, [next(Element, Cont)]).
-
-init_iterator_end([done]).
+    reset_shift(Goal,
+                =(yield(_)),
+                [yield(Element), Cont, args(next(Element, Cont))] >> true,
+                [args(done)] >> true,
+                args(Iterator)).
 
 :- endif. % commented out original code from paper
 
@@ -213,7 +215,7 @@ next(next(Element, Cont), Element, Iterator) :-
 
 sum_iterator(Iterator, Acc, Sum) :-
     (   next(Iterator, X, NIterator)
-    ->  NAcc is Acc + X,
+    *-> NAcc is Acc + X,
         sum_iterator(NIterator, NAcc, Sum)
     ;   Acc = Sum
     ).
@@ -243,7 +245,7 @@ sum_first_2(Sum) :-
 
 sum_all(Sum) :-
     (   ask(X)
-    ->  sum_all(Sum2),
+    *-> sum_all(Sum2),
         Sum is X + Sum2
     ;   Sum = 0
     ).
@@ -268,14 +270,14 @@ with_read(Stream, Goal) :-
 :- else.
 
 with_read(Stream, Goal) :-
-    reset_shift(Goal, =(ask(_)), with_read_catch, with_read_end, [Stream]).
-
-with_read_catch(ask(X), Cont, [Stream]) :-
-    read(Stream, X),
-    X \= end_of_file,
-    with_read(Stream, Cont).
-
-with_read_end([_Stream]).
+    reset_shift(Goal,
+                =(ask(_)),
+                [ask(X), Cont, args(Stream)] >>
+                    ( read(Stream, X),
+                      X \= end_of_file,
+                      with_read(Stream, Cont) ),
+                [args(_Stream)] >> true,
+                args(Stream)).
 
 :- endif. % commented out original code from paper
 
@@ -297,13 +299,12 @@ with_list(L, Goal) :-
 :- else.
 
 with_list(L, Goal) :-
-    reset_shift(Goal, =(ask(_)), with_list_catch, write_read_end, [L]).
-
-with_list_catch(ask(X), Cont, [L]) :-
-    L = [X|T],
-    with_list(T, Cont).
-
-write_read_end([_L]).
+    reset_shift(Goal,
+                =(ask(_)),
+                [ask(X), Cont, args([X|T])] >>
+                    with_list(T, Cont),
+                [args(_L)] >> true,
+                args(L)).
 
 :- endif.                     % commented out original code from paper
 
@@ -504,17 +505,18 @@ run_state(Goal, Sin, Sout) :-
 :- else.
 
 run_state(Goal, Sin, Sout) :-
-    reset_shift(Goal, allowed_terms([put(_),get(_)]),
-                run_state_catch, run_state_end, [Sin, Sout]).
+    reset_shift(Goal,
+                allowed_terms([put(_),get(_)]),
+                run_state_catch,
+                [args(S, S)] >> true,
+                args(Sin, Sout)).
 
 % Instead of `allowed_terms([put(_),get(-)])`, can use run_state_ok_term`:
 run_state_ok_term(put(_)).
 run_state_ok_term(get(_)).
 
-run_state_catch(get(S), Cont, [S, Sout]) :- run_state(Cont, S, Sout).
-run_state_catch(put(S), Cont, [_, Sout]) :- run_state(Cont, S, Sout).
-
-run_state_end([S, S]).
+run_state_catch(get(S), Cont, args(S, Sout)) :- run_state(Cont, S, Sout).
+run_state_catch(put(S), Cont, args(_, Sout)) :- run_state(Cont, S, Sout).
 
 :- endif. % commented out original code from paper
 
@@ -551,12 +553,12 @@ dcg_phrase(Goal, Lin, Lout) :-
 :- else.
 
 dcg_phrase(Goal, Lin, Lout) :-
-    reset_shift(Goal, =(c(_)), dcg_phrase_catch, dcg_phrase_end, [Lin, Lout]).
-
-dcg_phrase_catch(c(E), Cont, [[E|Lmid], Lout]) :-
-    dcg_phrase(Cont, Lmid, Lout).
-
-dcg_phrase_end([L, L]).
+    reset_shift(Goal,
+                =(c(_)),
+                [c(E), Cont, args([E|Lmid], Lout)] >>
+                    dcg_phrase(Cont, Lmid, Lout),
+                [args(L, L)] >> true,
+                args(Lin, Lout)).
 
 :- endif. % commented out original code from paper
 
