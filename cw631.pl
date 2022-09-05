@@ -51,7 +51,7 @@
                   p1/0
                  ]).
 
-:- meta_predicate reset_shift(0, 1, 3, 1, +). % (:Goal, :CatchTerm, :Catch, :End, +Args)
+:- meta_predicate reset_shift(0, 1, 3, 1, +). % (:Goal, :CatchRequest, :Catch, :End, +Args)
 
 % :- set_prolog_flag(autoload, false).
 
@@ -102,45 +102,50 @@ r1(Cont, ContAccu, Term) :-
 %%% General reset-shift %%%
 
 % reset_shift/5 is not in either of the papers, but encapuslates a
-%     general form that almost all the predicates use (so far,
-%     transduce/2 doesn't use reset_shift/5, and even that is similar,
-%     so there may be an even more general form than reset_shift/5).
+%     general form that almost all the predicates use (so far, play/2
+%     and transduce/2 dosn't use reset_shift/5, and even they are
+%     similar, so there may be an even more general form than
+%     reset_shift/5).
 
-%! reset_shift(:Goal, :CatchTerm, :Catch, :End, +Args).
+%! reset_shift(:Goal, :CatchRequest, :Catch, :End, +Args).
 
 % Calls Goal (using reset/3 or "prompt").
 % - If Goal didn't call shift/1, call End with Args.
 % - If Goal called shift/1, call Catch with:
-%     - Term from shift/1
+%     - Request (or Term) from shift/1
 %     - Continuation from reset/3
+%     - Args (the form is unspecified, but it is suggested to
+%       use `args(...,...)` for readability).
 %     Typically, Catch will tail-call reset_shift/5, passing
 %     it the Continuation from reset/3.
 % - Before calling Goal, first check that this is a Term we handle
-%   (using CatchTerm/1) - if CatchTerm/1 fails, then propagate the
-%   Term.  If only a single form of Term is handled, you can use =/2
-%   for the CatchTerm predicate; otherwise, allowed_terms/2 is
-%   provided for convenience.
+%   (using CatchRequest/1) - if CatchRequest/1 fails, then propagate
+%   the Request.  If only a single form of Request is handled, you can
+%   use =/2 for the CatchRequest predicate; otherwise, allowed_terms/2
+%   is provided for convenience.
+% Note that library(yall) can be used to define inline predicates
+% if only one kind of Request is handled.
 
-reset_shift(Goal, CatchTerm, Catch, End, Args) :-
-    reset(Goal, Term, Cont),
-    (   Cont == 0
+reset_shift(Goal, CatchRequest, Catch, End, Args) :-
+    reset(Goal, Request, Continuation),
+    (   Continuation == 0
     ->  call(End, Args)
-    ;   call(CatchTerm, Term)
-    *-> call(Catch, Term, Cont, Args)
-    ;   shift(Term),            % propagate unknown
-        reset_shift(Cont, CatchTerm, Catch, End, Args)
+    ;   call(CatchRequest, Request)
+    *-> call(Catch, Request, Continuation, Args)
+    ;   shift(Request),            % propagate unknown
+        reset_shift(Continuation, CatchRequest, Catch, End, Args)
     ).
 
-%! allowed_terms(+ListOfAllowed:list, +Term)is semidet.
-% For the `CatchTerm` parameter to reset_shift/5: does a lookup in the
+%! allowed_terms(+ListOfAllowed:list, +Request)is semidet.
+% For the `CatchRequest` parameter to reset_shift/5: does a lookup in the
 % list and either succeeds deterministically or fails.
-allowed_terms(ListOfAllowed, Term) :-
-    memberchk(Term, ListOfAllowed).
+allowed_terms(ListOfAllowed, Request) :-
+    memberchk(Request, ListOfAllowed).
 
-%! prompt_control(:Goal, :CatchTerm, :Catch, :End, +Args:list).
+%! prompt_control(:Goal, :CatchRequest, :Catch, :End, +Args:list).
 % An alternative name for reset_catch/5:
-prompt_control(Goal, CatchTerm, Catch, End, Args) :-
-    reset_shift(Goal, CatchTerm, Catch, End, Args).
+prompt_control(Goal, CatchRequest, Catch, End, Args) :-
+    reset_shift(Goal, CatchRequest, Catch, End, Args).
 
 :- begin_tests(cw631).
 
@@ -179,8 +184,8 @@ enum_from(L) :-
    generator’s continuation. The next/3 predicate extracts this
    element and builds the new iterator from the continuation. */
 
-yield(Term) :-
-    shift(yield(Term)).
+yield(Request) :-
+    shift(yield(Request)).
 
 :- if(false). % commented out original code from paper
 
@@ -199,14 +204,14 @@ init_iterator(Goal, Iterator) :-
 init_iterator(Goal, Iterator) :-
     reset_shift(Goal,
                 =(yield(_)),
-                [yield(Element), Cont, args(next(Element, Cont))] >> true,
+                [yield(Element), Continuation, args(next(Element, Continuation))] >> true,
                 [args(done)] >> true,
                 args(Iterator)).
 
 :- endif. % commented out original code from paper
 
-next(next(Element, Cont), Element, Iterator) :-
-    init_iterator(Cont, Iterator).
+next(next(Element, Continuation), Element, Iterator) :-
+    init_iterator(Continuation, Iterator).
 
 /* Consumers of iterators are independent of the particular
    generator. Note that in a sense yield/1 generalizes Prolog’s
@@ -272,10 +277,10 @@ with_read(Stream, Goal) :-
 with_read(Stream, Goal) :-
     reset_shift(Goal,
                 =(ask(_)),
-                [ask(X), Cont, args(Stream)] >>
+                [ask(X), Continuation, args(Stream)] >>
                     ( read(Stream, X),
                       X \= end_of_file,
-                      with_read(Stream, Cont) ),
+                      with_read(Stream, Continuation) ),
                 [args(_Stream)] >> true,
                 args(Stream)).
 
@@ -301,8 +306,8 @@ with_list(L, Goal) :-
 with_list(L, Goal) :-
     reset_shift(Goal,
                 =(ask(_)),
-                [ask(X), Cont, args([X|T])] >>
-                    with_list(T, Cont),
+                [ask(X), Continuation, args([X|T])] >>
+                    with_list(T, Continuation),
                 [args(_L)] >> true,
                 args(L)).
 
@@ -419,7 +424,8 @@ test(play_map_l_scan_sum, L == [1,3,6,10]) :-
 transduce(IG, TG) :-
     reset(TG, TermT, ContT),
     transduce_(TermT, ContT, IG).
-transduce_(_, 0, _) :- !. % <<== bug in original that checked for TermT = 0 <<==
+
+transduce_(_, 0, _) :- !. % original code checked for TermT = 0
 transduce_(yield(NValue), ContT, IG) :-
     yield(NValue),
     transduce(IG, ContT).
@@ -515,8 +521,8 @@ run_state(Goal, Sin, Sout) :-
 run_state_ok_term(put(_)).
 run_state_ok_term(get(_)).
 
-run_state_catch(get(S), Cont, args(S, Sout)) :- run_state(Cont, S, Sout).
-run_state_catch(put(S), Cont, args(_, Sout)) :- run_state(Cont, S, Sout).
+run_state_catch(get(S), Continuation, args(S, Sout)) :- run_state(Continuation, S, Sout).
+run_state_catch(put(S), Continuation, args(_, Sout)) :- run_state(Continuation, S, Sout).
 
 :- endif. % commented out original code from paper
 
@@ -555,8 +561,8 @@ dcg_phrase(Goal, Lin, Lout) :-
 dcg_phrase(Goal, Lin, Lout) :-
     reset_shift(Goal,
                 =(c(_)),
-                [c(E), Cont, args([E|Lmid], Lout)] >>
-                    dcg_phrase(Cont, Lmid, Lout),
+                [c(E), Continuation, args([E|Lmid], Lout)] >>
+                    dcg_phrase(Continuation, Lmid, Lout),
                 [args(L, L)] >> true,
                 args(Lin, Lout)).
 
