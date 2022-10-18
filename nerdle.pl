@@ -1,4 +1,4 @@
-% -*- mode: Prolog -*-
+% -*- mode: Prolog; coding: utf-8 -*-
 
 :- module(nerdle,
           [solve/2,
@@ -14,8 +14,11 @@
            set_interactive_display/1
           ]).
 
+:- encoding(utf8).
+
 :- use_module(library(lazy_lists)).
 :- use_module(library(readutil), [read_line_to_string/2]).
+:- use_module(library(pairs), [pairs_keys_values/3]).
 
 % TODO: review this comment
 % e.g.:
@@ -26,7 +29,7 @@ t(Summaries) :-
     init_summary(Summary0),
     lazy_write_results(Summaries),
     lazy_read_guesses(ReadGuesses),
-    run_puzzle(ReadGuesses, [5,0,*,3,=,1,5,0], [], Summary0, _Summary, Summaries).
+    run_puzzle(ReadGuesses, [5,0,*,3,=,1,5,0], [], Summary0, Summary, Summaries).
 
 :- set_prolog_flag(optimise, true).
 
@@ -133,6 +136,7 @@ valid_count(MinMax, D-Count) =>
 chars_term(Chars, Term) =>
     Chars \= [],
     Chars \= [0|_],
+    \+ (append(_, [Op,0|_], Chars), memberchk(Op, [+,-,*,/,=])),
     atomic_list_concat(Chars, String),
     catch(term_string(Term, String), _, fail).
 
@@ -288,7 +292,7 @@ display_summary(Summary) =>
 sym_and_count(Summary, Sym, Sym-Summary.Sym).
 
 :- det(display_1/4).
-%! Display(+GuessC, +SolutionC, +Counts0Summary0, -CountsSummary) is det.
+%! display_1(+GuessC, +SolutionC, +Counts0Summary0, -CountsSummary) is det.
 display_1(D, S, Counts-Summary0, CountsSummary), D == S =>
     % Counts have already been adjusted
     new_summary(D, Summary0, correct, Summary),
@@ -309,7 +313,7 @@ new_summary(D, Summary0, Judgment, Summary) =>
     put_dict(D, Summary0, New, Summary).
 
 :- det(updated_summary/3).
-%! updated_summary(+Summary0.D, +Judgment, -New) is det.
+%! updated_summary(+Summary0, +Judgment, -New) is det.
 updated_summary(Was,     Was,     New) => New = Was.
 updated_summary(_,       unknown, _  ) => fail. % should never happen
 updated_summary(correct, _,       New) => New = correct.
@@ -338,3 +342,94 @@ join([X|Xs], Call, Call2) =>
     call(Call2),
     join(Xs, Call, Call2).
 
+% Input moves.
+% There are three colors for a guess:
+%   緑 (green): correct symbol at this location
+%   黒 (black): this symbol doesn't occur elsewhere
+%   紅 (red):   incorrect symbol at this location - maybe should be 赤 (red) or 紫 ([light] purple)? ...
+%               Wordle uses yellow (黄)
+% These results are somewhat context-dependent. For example, a guess of
+%   12+12=24 might return 黒 for the first "1" and 緑 for the 2nd "1"; this means
+%            that there is only one "1" in the answer.
+% A guess is a list of symbols; a result is a list of the three colors.
+%   e.g., [1, 2, +, 1, 2, =, 2, 4]
+%         [黒,緑,紅,緑,黒,紅,黒,緑]
+
+guess_and_result(Guess, Colors, GuessWithColors) :-
+    pairs_keys_values(GuessWithColors, Guess, Colors).
+
+%%%%%%%%%%%%%%%%%%%%%
+
+% Possible patterns:
+%   0 = {0,1,2,3,4,5,6,7,8,9}
+%   1 =   {1,2,3,4,5,6,7,8,9}
+%   + = {+,-,*,/}
+% 12345678)
+pat("1+1=1000").
+pat("1+10=100").
+pat("1+100=10").
+pat("1+1000=1").
+pat("1+1+1=10").
+pat("1+10+1=1").
+pat("1+1+10=1").
+pat("10+1=100").
+pat("10+10=10").
+pat("10+100=1").
+pat("10+1+1=1").
+pat("100+1=10").
+pat("100+10=1").
+pat("1000+1=1").
+
+% Possible string
+poss(PossLeft, PossRight) :-
+    pat(P),
+    string_chars(P, Pat),
+    append(Left, ['='|Right], Pat),
+    maplist(expand_pat, Left, PossLeft),
+    chars_term(PossLeft, LeftTerm),
+    RightNumber is LeftTerm,
+    number_chars(RightNumber, Right),
+    maplist(char_number, Right, PossRight).
+
+expand_pat('0', 0).
+expand_pat('0', 1).
+expand_pat('0', 2).
+expand_pat('0', 3).
+expand_pat('0', 4).
+expand_pat('0', 5).
+expand_pat('0', 6).
+expand_pat('0', 7).
+expand_pat('0', 8).
+expand_pat('0', 9).
+expand_pat('1', 1).
+expand_pat('1', 2).
+expand_pat('1', 3).
+expand_pat('1', 4).
+expand_pat('1', 5).
+expand_pat('1', 6).
+expand_pat('1', 7).
+expand_pat('1', 8).
+expand_pat('1', 9).
+expand_pat('+', +).
+expand_pat('+', -).
+expand_pat('+', *).
+expand_pat('+', /).
+expand_pat('=', =).
+
+char_number('0', 0).
+char_number('1', 1).
+char_number('2', 2).
+char_number('3', 3).
+char_number('4', 4).
+char_number('5', 5).
+char_number('6', 6).
+char_number('7', 7).
+char_number('8', 8).
+char_number('9', 9).
+char_number('+', +).
+char_number('-', -).
+char_number('*', *).
+char_number('/', /).
+char_number('=', =).
+
+end_of_file.
