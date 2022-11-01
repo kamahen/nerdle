@@ -57,26 +57,6 @@ An example:
    set_prolog_flag(debugger_write_options, Options),
    set_prolog_flag(write_attributes, write).
 
-/* 
-     Puzzle=[X1,X2,X3,X4,X5,X6,X7,X8],
-     constrain(['1','2','+','1','2','=','2','4'],
-               [ 黒, 緑, 紅,  緑, 黒, 紅,  黒, 緑], Puzzle).
-*/
-
-:- det(normalize_result/2).
-normalize_result(緑,    緑).
-normalize_result(g,     緑).
-normalize_result(green, 緑).
-normalize_result(黒,    黒).
-normalize_result(b,     黒).
-normalize_result(black, 黒).
-normalize_result(紅,    紅).
-normalize_result(赤,    紅).
-normalize_result(紫,    紅).
-normalize_result(黄,    紅).
-normalize_result(r,     紅).
-normalize_result(red,   紅).
-
 %! constrain(+Guess:list, +Result:list, Puzzle:list) is det.
 % Given a guess (e.g., ['7','+','8','-','5','=','1','0']) and
 % a result (e.g.,      [ b , b , b , r , r , g , g , r ])),
@@ -112,7 +92,8 @@ constrain_counts(Guess, Result, Puzzle) :-
 % this particular Label is the number of non-black results.
 % Otherwise (no black), we know the minimum number of this Label.
 constrain_count(_Puzzle, _Label-[]) => fail. % group_pairs_by_key/2 can't generate this.
-constrain_count(_Puzzle, _Label-Results), all_black(Results) => true.
+constrain_count(Puzzle, Label-Results), all_black(Results) =>
+    when(ground(Puzzle), count_check(Puzzle, Label, =(0))).
 constrain_count(Puzzle, Label-Results), some_black(Results) =>
     not_black_count(Results, Count),
     when(ground(Puzzle), count_check(Puzzle, Label, between(1,Count))).
@@ -152,7 +133,8 @@ puzzle_fill(Puzzle) :-
     catch(term_string(LeftTerm, LeftString), _, fail),
     catch(LeftValue is LeftTerm, _, fail),
     integer(LeftValue),
-    atom_chars(LeftValue, Right).
+    atom_chars(LeftValue, Right),
+    \+ starts_with_invalid(Right).
 
 starts_with_invalid([X|_]) :-
     invalid_start(X).
@@ -221,4 +203,18 @@ red(紫).
 red(黄).
 red(r).
 red(red).
+
+:- det(normalize_result/2).
+normalize_result(緑,    緑).
+normalize_result(g,     緑).
+normalize_result(green, 緑).
+normalize_result(黒,    黒).
+normalize_result(b,     黒).
+normalize_result(black, 黒).
+normalize_result(紅,    紅).
+normalize_result(赤,    紅).
+normalize_result(紫,    紅).
+normalize_result(黄,    紅).
+normalize_result(r,     紅).
+normalize_result(red,   紅).
 
