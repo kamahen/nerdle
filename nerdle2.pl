@@ -98,22 +98,25 @@ constrain_counts(Puzzle, Guess, Result) :-
     group_pairs_by_key(GuessResult, GuessGroups),
     maplist(constrain_count(Puzzle), GuessGroups).
 
-:- det(constrain_count/2).
 %! constrain_count(+Puzzle:list, +Label:atom-Results:list) is det.
 % Add counting constraints to Puzzle according to a specific Label-Results.
 % If all the Results are black, this provides no information
 % If there is at least one black, then we know the maximum number of
 % this particular Label is the number of non-black results.
 % Otherwise (no black), we know the minimum number of this Label.
-constrain_count(_Puzzle, _Label-[]) => fail. % group_pairs_by_key/2 can't generate this.
-constrain_count(Puzzle, Label-Results), all_black(Results) =>
-    count_check(Puzzle, Label, =(0)).
-constrain_count(Puzzle, Label-Results), some_black(Results) =>
+constrain_count(Puzzle, Label-Results) :-
+    count_label(Puzzle, Label, LabelCount),
+    constrain_count_(Results, LabelCount).
+
+constrain_count_([], _LabelCount) => fail. % group_pairs_by_key/2 can't generate this.
+constrain_count_(Results, LabelCount), all_black(Results) =>
+    LabelCount = 0.
+constrain_count_(Results, LabelCount), some_black(Results) =>
     not_black_count(Results, Count),
-    count_check(Puzzle, Label, between(1,Count)).
-constrain_count(Puzzle, Label-Results) =>
+    1 =< LabelCount, LabelCount =< Count.
+constrain_count_(Results, LabelCount) =>
     not_black_count(Results, Count),
-    count_check(Puzzle, Label, between(Count,8)).
+    Count =< LabelCount.
 
 all_black(Xs) :-
     maplist(black, Xs).
@@ -124,11 +127,6 @@ some_black(Xs) :-
 not_black_count(Xs, Count) :-
     exclude(black, Xs, NotBlacks),
     length(NotBlacks, Count).
-
-:- meta_predicate count_check(+, +, 1).
-count_check(Puzzle, Label, Test) :-
-    count_label(Puzzle, Label, Count),
-    call(Test, Count).
 
 count_label(Puzzle, Label, Count) :-
     include(=(Label), Puzzle, PuzzleMatch),
