@@ -64,6 +64,7 @@ An example:
 % a result (e.g.,      [ b , b , b , r , r , g , g , r ])),
 % add constraints to Puzzle (an 8-element list).
 constrain(Guess, Result, Puzzle) :-
+    length(Puzzle, 8),
     maplist(normalize_result, Result, ResultNormalized),
     maplist(constrain_from_guess, ResultNormalized, Guess, Puzzle).
 

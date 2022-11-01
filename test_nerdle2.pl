@@ -24,16 +24,14 @@ test_nerdle2 :-
     run_tests([ nerdle2
 	      ]).
 
-p1([X1,X2,X3,X4,X5,X6,X7,X8]) :- p1(X1,X2,X3,X4,X5,X6,X7,X8).
-
-c11(['7','+','8','-','5','=','1','0'],
-    [ b , b , b , r , r , g , g , r ]).
-c12(['5','2','-','4','0','=','1','2'],
-    [ r , b , g , b , g , g , g , b ]).
-c13(['6','3','-','5','0','=','1','3'],
-    [ g , b , g , g , g , g , g , b ]).
-c14(['6','9','-','5','0','=','1','9'],  % answer
-    [ g,  g,  g,  g,  g,  g,  g,  g ]).
+c11("7+8-5=10",
+    "bbbrrggr").
+c12("52-40=12",
+    "rbgbgggb").
+c13("63-50=13",
+    "gbgggggb").
+c14("69-50=19",  % answer
+    "gggggggg").
 
 :- meta_predicate constrain(2, +).
 constrain(Lookup, Puzzle) :-
@@ -47,34 +45,33 @@ constrain_counts(Lookup, Puzzle) :-
 
 :- meta_predicate guess_lookup(2, -, -).
 guess_lookup(Lookup, Guess, Result) :-
-    call(Lookup, Guess, Result0),
+    call(Lookup, GuessStr, Result0Str),
+    string_chars(GuessStr, Guess),
+    string_chars(Result0Str, Result0),
     maplist(normalize_result, Result0, Result).
 
-p1(X1,X2,X3,X4,X5,X6,X7,X8) :-
-     Puzzle=[X1,X2,X3,X4,X5,X6,X7,X8],
-     constrain(c11, Puzzle),
-     constrain(c12, Puzzle),
-     constrain(c13, Puzzle),
-     puzzle_fill(Puzzle),
-     constrain_counts(c11, Puzzle),
-     constrain_counts(c12, Puzzle),
-     constrain_counts(c13, Puzzle),
-     true.
-     % Puzzle =  ['6','9','-','5','0','=','1','9'].
+p1(PuzzleStr) :-
+    constrain(c11, Puzzle),
+    constrain(c12, Puzzle),
+    constrain(c13, Puzzle),
+    puzzle_fill(Puzzle),
+    constrain_counts(c11, Puzzle),
+    constrain_counts(c12, Puzzle),
+    constrain_counts(c13, Puzzle),
+    string_chars(PuzzleStr, Puzzle).
+    % PuzzleStr =  "69-50=19".
 
-p2([X1,X2,X3,X4,X5,X6,X7,X8]) :- p2(X1,X2,X3,X4,X5,X6,X7,X8).
+c21("7+8-0=15",
+    "rbrrbrbb").
+c22("23-2*7=9",
+    "bbrbbrgr").
+c23("64/4-9=7",
+    "rbgbgrgr").
+c24("98/7-6=8",
+    "gggggrgr").
 
-c21(['7','+','8','-','0','=','1','5'],
-    [ r , b , r , r , b , r , b , b ]).
-c22(['2','3','-','2','*','7','=','9'],
-    [ b , b , r , b , b , r , g , r ]).
-c23(['6','4','/','4','-','9','=','7'],
-    [ r , b , g , b , g , r , g , r ]).
-c24(['9','8','/','7','-','6','=','8'],
-    [ g , g , g , g , g , r , g , r ]).
-
-p2(X1,X2,X3,X4,X5,X6,X7,X8) :-
-    Puzzle=[X1,X2,X3,X4,X5,X6,X7,X8],
+p2(PuzzleStr) :-
+    length(Puzzle, 8),
     constrain(c21, Puzzle),
     constrain(c22, Puzzle),
     constrain(c23, Puzzle),
@@ -84,18 +81,18 @@ p2(X1,X2,X3,X4,X5,X6,X7,X8) :-
     constrain_counts(c22, Puzzle),
     constrain_counts(c23, Puzzle),
     constrain_counts(c24, Puzzle),
-    true.
+    string_chars(PuzzleStr, Puzzle).
 
 :- begin_tests(nerdle2).
 
-test(p1, all(P == [['6','1','-','5','0','=','1','1'],
-                   ['6','5','-','5','0','=','1','5'],
-                   ['6','6','-','5','0','=','1','6'],
-                   ['6','9','-','5','0','=','1','9']])) :-
+test(p1, all(P == ["61-50=11",
+                   "65-50=15",
+                   "66-50=16",
+                   "69-50=19"])) :-
     p1(P).
 
-test(p2, all(P == [['9','8','/','7','-','6','=','8'],
-                   ['9','8','/','7','-','8','=','6']])) :-
+test(p2, all(P == ["98/7-6=8",
+                   "98/7-8=6"])) :-
     p2(P).
 
 :- end_tests(nerdle2).
