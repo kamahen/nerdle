@@ -3,7 +3,9 @@
 :- module(nerdle2,
           [puzzle_fill/1,
            puzzle_atom/1,
-           constrain/3
+           constrain/3,
+           constrain_counts/3,
+           normalize_result/2
           ]).
 
 :- encoding(utf8).
@@ -63,8 +65,7 @@ An example:
 % add constraints to Puzzle (an 8-element list).
 constrain(Guess, Result, Puzzle) :-
     maplist(normalize_result, Result, ResultNormalized),
-    maplist(constrain_from_guess, ResultNormalized, Guess, Puzzle),
-    constrain_counts(Guess, ResultNormalized, Puzzle).
+    maplist(constrain_from_guess, ResultNormalized, Guess, Puzzle).
 
 %! constrain_from_guess(+Result:atom, +Guess{g,b,r}, PuzzleItem) is det.
 % For a single item in a guess (e.g., Result='7', Guess=b), and the matching
@@ -85,7 +86,7 @@ constrain_counts(Guess, Result, Puzzle) :-
     maplist(constrain_count(Puzzle), GuessGroups).
 
 :- det(constrain_count/2).
-%! constrain_count(Puzzle:list, +Label:atom-Results:list) is det.
+%! constrain_count(+Puzzle:list, +Label:atom-Results:list) is det.
 % Add counting constraints to Puzzle according to a specific Label-Results.
 % If all the Results are black, this provides no information
 % If there is at least one black, then we know the maximum number of
@@ -93,13 +94,13 @@ constrain_counts(Guess, Result, Puzzle) :-
 % Otherwise (no black), we know the minimum number of this Label.
 constrain_count(_Puzzle, _Label-[]) => fail. % group_pairs_by_key/2 can't generate this.
 constrain_count(Puzzle, Label-Results), all_black(Results) =>
-    when(ground(Puzzle), count_check(Puzzle, Label, =(0))).
+    count_check(Puzzle, Label, =(0)).
 constrain_count(Puzzle, Label-Results), some_black(Results) =>
     not_black_count(Results, Count),
-    when(ground(Puzzle), count_check(Puzzle, Label, between(1,Count))).
+    count_check(Puzzle, Label, between(1,Count)).
 constrain_count(Puzzle, Label-Results) =>
     not_black_count(Results, Count),
-    when(ground(Puzzle), count_check(Puzzle, Label, between(Count,8))).
+    count_check(Puzzle, Label, between(Count,8)).
 
 all_black(Xs) :-
     maplist(black, Xs).
