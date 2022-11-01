@@ -47,9 +47,8 @@ An example:
 :- use_module(library(pairs), [pairs_keys_values/3, group_pairs_by_key/2]).
 :- use_module(library(lists), [append/3]).
 :- use_module(library(dif),   [dif/2]).
-:- use_module(library(when),  [when/2]).
 
-% Allow more elements when printing a list before the "|...":
+% For debuggin: more elements when printing a list before the "|...":
 :- Options = [quoted(true),
               portray(true),
               attributes(write),
@@ -57,13 +56,14 @@ An example:
               spacing(standard)],
    set_prolog_flag(  answer_write_options, Options),
    set_prolog_flag(debugger_write_options, Options),
-   set_prolog_flag(write_attributes, write).
+   % set_prolog_flag(write_attributes, write).
+   true.
 
-%! constrain(+Guess:list, +Result:list, Puzzle:list) is det.
+%! constrain(Puzzle:list, +Guess:list, +Result:list) is det.
 % Given a guess (e.g., ['7','+','8','-','5','=','1','0']) and
 % a result (e.g.,      [ b , b , b , r , r , g , g , r ])),
 % add constraints to Puzzle (an 8-element list).
-constrain(Guess, Result, Puzzle) :-
+constrain(Puzzle, Guess, Result) :-
     length(Puzzle, 8),
     maplist(normalize_result, Result, ResultNormalized),
     maplist(constrain_from_guess, ResultNormalized, Guess, Puzzle).
@@ -80,7 +80,7 @@ constrain_from_guess(紅, Guess, PuzzleItem) :- % Guess exists elsewhere
 constrain_from_guess(黒, Guess, PuzzleItem) :- % Guess is not here
     dif(PuzzleItem, Guess).
 
-constrain_counts(Guess, Result, Puzzle) :-
+constrain_counts(Puzzle, Guess, Result) :-
     pairs_keys_values(GuessResult0, Guess, Result),
     keysort(GuessResult0, GuessResult),
     group_pairs_by_key(GuessResult, GuessGroups),
