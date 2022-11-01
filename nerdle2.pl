@@ -44,6 +44,7 @@ An example:
 :- use_module(library(pairs), [pairs_keys_values/3, group_pairs_by_key/2]).
 :- use_module(library(lists), [append/3]).
 :- use_module(library(dif),   [dif/2]).
+:- use_module(library(debug), [assertion/1]).
 
 % For debuggin: more elements when printing a list before the "|...":
 :- Options = [quoted(true),
@@ -60,10 +61,16 @@ An example:
 % process one set of inputs, producing a puzzle result (backtracks).
 puzzle_solve(GuessResults, PuzzleStr) :-
     process_inputs(GuessResults, Guesses, Results),
+    assertion(maplist(maplist(verify_result), Results)),
     maplist(constrain(Puzzle), Guesses, Results),
+    constrain_black(Puzzle, Guesses, Results),
     puzzle_fill(Puzzle),
     maplist(constrain_counts(Puzzle), Guesses, Results),
     string_chars(PuzzleStr, Puzzle).
+
+verify_result(黒).
+verify_result(緑).
+verify_result(紅).
 
 process_inputs(GuessResults, Guesses, Results) :-
     pairs_keys_values(GuessResults, GuessStrs, ResultStrs),
@@ -87,7 +94,7 @@ constrain(Puzzle, Guess, Result) :-
 % Add constraints for a single result (緑,黒,紅), Guess{digit,operator,=}, puzzle solution.
 constrain_from_guess(緑, Guess, PuzzleItem) :- % Guess is correct at this location
     PuzzleItem = Guess.
-constrain_from_guess(紅, Guess, PuzzleItem) :- % Guess exists elsewhere
+constrain_from_guess(紅, Guess, PuzzleItem) :- % Guess is in the answer, but elsewhere
     dif(PuzzleItem, Guess).
 constrain_from_guess(黒, Guess, PuzzleItem) :- % Guess is not here
     dif(PuzzleItem, Guess).
@@ -131,6 +138,23 @@ not_black_count(Xs, Count) :-
 count_label(Puzzle, Label, Count) :-
     include(=(Label), Puzzle, PuzzleMatch),
     length(PuzzleMatch, Count).
+
+%! constrain_black(Puzzle:list, +Guesses, +Results) :-
+% Add constraints for all labels that can't appear.
+% This gives about a 10% performance boost.
+constrain_black(Puzzle, Guesses, Results) :-
+    maplist(pairs_keys_values, GuessResults, Guesses, Results),
+    append(GuessResults, AllGuessResults),
+    setof(G, only_black_guess(AllGuessResults, G), GuessesNotInAnswer),
+    maplist(constrain_black_(Puzzle), GuessesNotInAnswer).
+
+only_black_guess(AllGuessResults, G) :-
+    memberchk(G-黒, AllGuessResults),
+    \+ memberchk(G-緑, AllGuessResults),
+    \+ memberchk(G-紅, AllGuessResults).
+
+constrain_black_(Puzzle, G) :-
+    maplist(dif(G), Puzzle).
 
 puzzle_fill(Puzzle) :-
     puzzle(Left, Right),
