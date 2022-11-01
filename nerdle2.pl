@@ -1,11 +1,8 @@
 % -*- mode: Prolog; coding: utf-8 -*-
 
 :- module(nerdle2,
-          [puzzle_fill/1,
-           puzzle_atom/1,
-           constrain/3,
-           constrain_counts/3,
-           normalize_result/2
+          [puzzle_solve/2,
+           puzzle_fill/1
           ]).
 
 :- encoding(utf8).
@@ -58,6 +55,21 @@ An example:
    set_prolog_flag(debugger_write_options, Options),
    % set_prolog_flag(write_attributes, write).
    true.
+
+%! puzzle_solve(+GuessResults:list, -PuzzleStr:string) is nondet.
+% process one set of inputs, producing a puzzle result (backtracks).
+puzzle_solve(GuessResults, PuzzleStr) :-
+    process_inputs(GuessResults, Guesses, Results),
+    maplist(constrain(Puzzle), Guesses, Results),
+    puzzle_fill(Puzzle),
+    maplist(constrain_counts(Puzzle), Guesses, Results),
+    string_chars(PuzzleStr, Puzzle).
+
+process_inputs(GuessResults, Guesses, Results) :-
+    pairs_keys_values(GuessResults, GuessStrs, ResultStrs),
+    maplist(string_chars, GuessStrs, Guesses),
+    maplist(string_chars, ResultStrs, Results0),
+    maplist(maplist(normalize_result), Results0, Results).
 
 %! constrain(Puzzle:list, +Guess:list, +Result:list) is det.
 % Given a guess (e.g., ['7','+','8','-','5','=','1','0']) and
@@ -121,10 +133,6 @@ count_check(Puzzle, Label, Test) :-
 count_label(Puzzle, Label, Count) :-
     include(=(Label), Puzzle, PuzzleMatch),
     length(PuzzleMatch, Count).
-
-puzzle_atom(PuzzleAtom) :-
-    puzzle_fill(Puzzle),
-    atomic_list_concat(Puzzle, PuzzleAtom).
 
 puzzle_fill(Puzzle) :-
     puzzle(Left, Right),
