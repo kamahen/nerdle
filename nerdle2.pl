@@ -1,8 +1,7 @@
 % -*- mode: Prolog; coding: utf-8 -*-
 
 :- module(nerdle2,
-          [puzzle_solve/2,
-           puzzle_fill/1
+          [puzzle_solve/2
           ]).
 
 :- encoding(utf8).
@@ -42,11 +41,11 @@ An example:
 % :- set_prolog_flag(autoload, false).
 :- use_module(library(apply), [include/3, exclude/3, maplist/2, maplist/3, maplist/4]).
 :- use_module(library(pairs), [pairs_keys_values/3, group_pairs_by_key/2]).
-:- use_module(library(lists), [append/3]).
+:- use_module(library(lists), [append/3, append/2, member/2]).
 :- use_module(library(dif),   [dif/2]).
 :- use_module(library(debug), [assertion/1]).
 
-% For debuggin: more elements when printing a list before the "|...":
+% For debugging: more elements when printing a list before the "|...":
 :- Options = [quoted(true),
               portray(true),
               attributes(write),
@@ -113,9 +112,10 @@ constrain_counts(Puzzle, Guess, Result) :-
 % Otherwise (no black), we know the minimum number of this Label.
 constrain_count(Puzzle, Label-Results) :-
     count_label(Puzzle, Label, LabelCount),
+    assertion(Results \= []), % group_pairs_by_key/2 can't generate this
     constrain_count_(Results, LabelCount).
 
-constrain_count_([], _LabelCount) => fail. % group_pairs_by_key/2 can't generate this.
+% constrain_count_([], _LabelCount) => fail. % group_pairs_by_key/2 can't generate this
 constrain_count_(Results, LabelCount), all_black(Results) =>
     LabelCount = 0.
 constrain_count_(Results, LabelCount), some_black(Results) =>
@@ -123,7 +123,7 @@ constrain_count_(Results, LabelCount), some_black(Results) =>
     1 =< LabelCount, LabelCount =< Count.
 constrain_count_(Results, LabelCount) =>
     not_black_count(Results, Count),
-    Count =< LabelCount.
+    LabelCount >= Count.
 
 all_black(Xs) :-
     maplist(black, Xs).
@@ -149,7 +149,7 @@ constrain_black(Puzzle, Guesses, Results) :-
     maplist(constrain_black_(Puzzle), GuessesNotInAnswer).
 
 only_black_guess(AllGuessResults, G) :-
-    memberchk(G-黒, AllGuessResults),
+    member(G-黒, AllGuessResults),
     \+ memberchk(G-緑, AllGuessResults),
     \+ memberchk(G-紅, AllGuessResults).
 
@@ -157,53 +157,42 @@ constrain_black_(Puzzle, G) :-
     maplist(dif(G), Puzzle).
 
 puzzle_fill(Puzzle) :-
+    append(Left, ['='|Right], Puzzle),
     puzzle(Left, Right),
-    append(Left, [=|Right], Puzzle),
-    maplist(digit_or_operator, Left),
-    \+ starts_with_invalid(Left),
+    valid_left(Left),
     atomic_list_concat(Left, LeftString),
     catch(term_string(LeftTerm, LeftString), _, fail),
     catch(LeftValue is LeftTerm, _, fail),
     integer(LeftValue),
     atom_chars(LeftValue, Right),
-    \+ starts_with_invalid(Right).
+    valid_number(Right).
 
-starts_with_invalid([X|_]) :-
-    invalid_start(X).
-starts_with_invalid(Expr) :-
-    append(_, [Op,X|_], Expr),
-    invalid_start(X),
-    operator(Op).
+valid_left(Left) :- phrase(valid_left, Left).
 
-invalid_start('0').
-invalid_start('+').
-invalid_start('-').
-invalid_start('/').
-invalid_start('*').
-invalid_start('=').
+valid_number(Number) :- phrase(valid_number, Number).
 
+valid_left --> valid_number.
+valid_left --> valid_number, operator, valid_left.
+
+valid_number -->
+    digit(C),
+    (  { C = '0' }
+    -> [ ]
+    ;  valid_number_rest
+    ).
+
+valid_number_rest --> [].
+valid_number_rest --> digit(_C), valid_number_rest.
+
+digit(C) --> [C], { digit(C) }.
+
+operator --> [C], { operator(C) }.
 
 puzzle(Left, Right) :-
     between(2, 6, LenLeft),
     LenRight is 7 - LenLeft,
     length(Left, LenLeft),
     length(Right, LenRight).
-
-% Not used:
-% :- use_module(library(yall)).
-% zero_counts(Counts) :-
-%     all_puzzle_label(Xs),
-%     maplist([X,X-0]>>true, Xs, X0s),
-%     dict_create(Counts, counts, X0s).
-%
-% all_puzzle_label(Xs) :-
-%     bagof(X, puzzle_label(X), Xs).
-
-puzzle_label(X) :- digit_or_operator(X).
-puzzle_label('=').
-
-digit_or_operator(X) :- digit(X).
-digit_or_operator(X) :- operator(X).
 
 digit('0').
 digit('1').
@@ -223,10 +212,12 @@ operator('/').
 
 green(緑).
 green(g).
+green(grn).
 green(green).
 
 black(黒).
 black(b).
+black(blk).
 black(black).
 
 red(紅).

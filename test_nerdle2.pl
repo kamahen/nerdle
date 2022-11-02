@@ -1,10 +1,7 @@
 % -*- mode: Prolog; coding: utf-8 -*-
 
 :- module(test_nerdle2,
-	  [ test_nerdle2/0,
-            % The following are exported for REPL testing:
-            puzzle_solve/2,
-            puzzle_fill/1
+	  [ test_nerdle2/0
 	  ]).
 
 :- encoding(utf8).
@@ -42,6 +39,15 @@ test(p2, all(P == ["98/7-6=8",
                   "rbgbgrgr"],
                 % "98/7-6=8"-  % answer
                 % "gggggggg"
+                 P).
+
+test(p3, [ all(P == ["2-10/5=0"])]) :-
+    puzzle_solve(["8+9-3=14"-
+                  "bbbrbrrb",
+                  "10-5-3=2"-
+                  "rrrrbbgr",
+                  "5-20/5=1"-
+                  "bgrggggr"],
                  P).
 
 :- end_tests(nerdle2).
