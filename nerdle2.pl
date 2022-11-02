@@ -1,7 +1,9 @@
 % -*- mode: Prolog; coding: utf-8 -*-
 
 :- module(nerdle2,
-          [puzzle_solve/2
+          [puzzle_solve/3,
+           puzzle_solve/2,
+           puzzle_solve_all/2
           ]).
 
 :- encoding(utf8).
@@ -39,8 +41,11 @@ An example:
 ****************************************************/
 
 % :- set_prolog_flag(autoload, false).
-:- use_module(library(apply), [include/3, exclude/3, maplist/2, maplist/3, maplist/4]).
-:- use_module(library(pairs), [pairs_keys_values/3, group_pairs_by_key/2]).
+:- use_module(library(apply), [include/3, exclude/3,
+                               maplist/2, maplist/3, maplist/4,
+                               foldl/4]).
+:- use_module(library(pairs), [pairs_keys_values/3, pairs_values/2,
+                               group_pairs_by_key/2]).
 :- use_module(library(lists), [append/3, append/2, member/2]).
 :- use_module(library(dif),   [dif/2]).
 :- use_module(library(debug), [assertion/1]).
@@ -56,15 +61,23 @@ An example:
    % set_prolog_flag(write_attributes, write).
    true.
 
-%! puzzle_solve(+GuessResults:list, -PuzzleStr:string) is nondet.
-% process one set of inputs, producing a puzzle result (backtracks).
+puzzle_solve_all(GuessResults, PuzzleStrs) :-
+    setof(Score-PuzzleStr, puzzle_solve(GuessResults, Score, PuzzleStr), Xs),
+    pairs_values(Xs, PuzzleStrs).
+
 puzzle_solve(GuessResults, PuzzleStr) :-
+    puzzle_solve(GuessResults, _Score, PuzzleStr).
+
+%! puzzle_solve(+GuessResults:list, -Score, -PuzzleStr:string) is nondet.
+% process one set of inputs, producing a puzzle result (backtracks).
+puzzle_solve(GuessResults, Score, PuzzleStr) :-
     process_inputs(GuessResults, Guesses, Results),
     assertion(maplist(maplist(verify_result), Results)),
     maplist(constrain(Puzzle), Guesses, Results),
     constrain_black(Puzzle, Guesses, Results),
     puzzle_fill(Puzzle),
     maplist(constrain_counts(Puzzle), Guesses, Results),
+    score(Puzzle, Guesses, Score),
     string_chars(PuzzleStr, Puzzle).
 
 verify_result(黒).
@@ -193,6 +206,17 @@ puzzle(Left, Right) :-
     LenRight is 7 - LenLeft,
     length(Left, LenLeft),
     length(Right, LenRight).
+
+score(Puzzle, Guesses, Score) :-
+    append(Guesses, GuessesCombined0),
+    sort(GuessesCombined0, GuessesCombined),
+    foldl(score_label, Puzzle, GuessesCombined-0, _-Score).
+
+score_label(Label, GuessesCombined-Score, GS), memberchk(Label, GuessesCombined) =>
+    GS = GuessesCombined-Score.
+score_label(Label, GuessesCombined-Score0, GS) =>
+    Score is Score0 - 100,
+    GS = [Label|GuessesCombined]-Score.
 
 digit('0').
 digit('1').
