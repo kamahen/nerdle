@@ -50,5 +50,32 @@ test(p3, Ps == ["2-10/5=0"]) :-
                       "bgrggggr"],
                      Ps).
 
+test(p4, Ps == ["8-12+9=5",
+                "8-15+9=2",
+                "9-12+8=5",
+                "9-15+8=2",
+                "5-11+8=2",
+                "5-12+8=1",
+                "6-12+8=2",
+                "8-11+5=2",
+                "8-12+5=1",
+                "8-12+6=2"]) :-
+    puzzle_solve_all(["7+8-2=13"-
+                      "brrrrrrb",
+                      "0-4+12=8"-
+                      "bgbrrrgr"],
+                    % "8-12+9=5"-
+                    % "rggggbgb"
+                    % "6-12+8=2" % answer
+                    Ps).
+% same solution as above, but different starting guess
+test(p4, Ps == ["6-12+8=2"]) :-
+     puzzle_solve_all(["9/3*6=18"-
+                       "bbbbrrrr",
+                       "0+14-8=6"-
+                       "brgbrggr"],
+                     % "6-12+8=2" % answer
+                     Ps).
+
 :- end_tests(nerdle2).
 
