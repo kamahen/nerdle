@@ -1,6 +1,6 @@
 % -*- mode: Prolog; coding: utf-8 -*-
 
-:- module(nerdle2,
+:- module(nerdle,
           [puzzle_solve/3,
            puzzle_solve_all/2
           ]).

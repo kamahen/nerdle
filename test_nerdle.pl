@@ -1,20 +1,20 @@
 % -*- mode: Prolog; coding: utf-8 -*-
 
-:- module(test_nerdle2,
-	  [ test_nerdle2/0
+:- module(test_nerdle,
+	  [ test_nerdle/0
 	  ]).
 
 :- encoding(utf8).
 
 :- use_module(library(plunit)).
-:- use_module(nerdle2).
+:- use_module(nerdle).
 :- use_module(expr).
 
-test_nerdle2 :-
-    run_tests([ nerdle2
+test_nerdle :-
+    run_tests([ nerdle
 	      ]).
 
-:- begin_tests(nerdle2).
+:- begin_tests(nerdle).
 
 test(eval, T-R == 0-0) :-
     expr("0", T),
@@ -110,5 +110,5 @@ test(p5, Ps == ["1/8*72=9",
                     % "1/8*72=9" % answer
                      Ps).
 
-:- end_tests(nerdle2).
+:- end_tests(nerdle).
 
