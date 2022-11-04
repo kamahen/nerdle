@@ -8,12 +8,32 @@
 
 :- use_module(library(plunit)).
 :- use_module(nerdle2).
+:- use_module(expr).
 
 test_nerdle2 :-
     run_tests([ nerdle2
 	      ]).
 
 :- begin_tests(nerdle2).
+
+test(eval, T-R == 0-0) :-
+    expr("0", T),
+    eval(T, R).
+test(eval, T-R == 1-1) :-
+    expr("1", T),
+    eval(T, R).
+test(eval, T-R == (1*10+2)*10+3-123) :-
+    expr("123", T),
+    eval(T, R).
+test(eval, T-R == (4/8*(1*10+8)+5)-14) :-
+     expr("4/8*18+5", T),
+     eval(T, R).
+test(eval, fail) :-
+    expr("01", _R).
+test(eval, fail) :-
+    expr("-1", _R).
+test(eval, error(existence_error(matching_rule,_))) :-
+    eval('abc', _R).
 
 test(p1, Ps == ["69-50=19",
                 "61-50=11",
@@ -87,6 +107,7 @@ test(p5, Ps == ["1/8*72=9",
                       "rgbgbrrr",
                       "0/1*89=0"- % bad guess, because of bug
                       "bgrgrrgb"],
+                    % "1/8*72=9" % answer
                      Ps).
 
 :- end_tests(nerdle2).
