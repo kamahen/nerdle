@@ -77,5 +77,17 @@ test(p4, Ps == ["6-12+8=2"]) :-
                      % "6-12+8=2" % answer
                      Ps).
 
+test(p5, Ps == ["1/8*72=9",
+                "2/4*18=9",
+                "2/9*18=4",
+                "1/2*18=9",
+                "1/9*18=2",
+                "4/8*18=9"]) :-
+    puzzle_solve_all(["9/3*6=18"-
+                      "rgbgbrrr",
+                      "0/1*89=0"- % bad guess, because of bug
+                      "bgrgrrgb"],
+                     Ps).
+
 :- end_tests(nerdle2).
 

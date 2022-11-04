@@ -50,6 +50,8 @@ An example:
 :- use_module(library(dif),   [dif/2]).
 :- use_module(library(debug), [assertion/1]).
 
+:- set_prolog_flag(prefer_rationals, true).
+
 % For debugging: print more elements of a list before the "|...":
 :- Options = [quoted(true),
               portray(true),
@@ -61,7 +63,7 @@ An example:
    % set_prolog_flag(write_attributes, write).
    true.
 
-%! puzzle_solve_all(+GuessResults:list(pair), -PuzzleStrs:list(string)) :-
+%! puzzle_solve_all(+GuessResults:list(pair), -PuzzleStrs:list(string)) is nondet.
 % GuessResults is a list of pairs, with the first element being the guess
 % and the second element being the result of the guess. For example:
 %       Guess =  ['1', '2', '+', '1', '4', '=', '2', '6']
@@ -118,7 +120,7 @@ constrain(Puzzle, Guess, Result) :-
     maplist(constrain_from_guess, ResultNormalized, Guess, Puzzle).
 
 :- det(constrain_from_guess/3).
-%! constrain_from_guess(+Result:atom, +Guess{g,b,r}, PuzzleItem) is det.
+%! constrain_from_guess(+Result:atom, +Guess:{g,b,r}, PuzzleItem) is det.
 % For a single item in a guess (e.g., Result='7', Guess=b), and the matching
 % PuzzleItem from Puzzle, add constraints.
 % Add constraints for a single result (緑,黒,紅), Guess{digit,operator,=}, puzzle solution.
@@ -178,7 +180,7 @@ count_label(Puzzle, Label, Count) :-
     include(=(Label), Puzzle, PuzzleMatch),
     length(PuzzleMatch, Count).
 
-%! constrain_black(Puzzle:list, +Guesses, +Results) :-
+%! constrain_black(Puzzle:list, +Guesses, +Results) is nondet.
 % Add constraints for all labels that can't appear.
 % This gives about a 10% performance boost.
 constrain_black(Puzzle, Guesses, Results) :-
@@ -195,7 +197,7 @@ only_black_guess(AllGuessResults, G) :-
 constrain_black_(Puzzle, G) :-
     maplist(dif(G), Puzzle).
 
-%! puzzle_fill(+Puzzle:list(?) is nondet.
+%! puzzle_fill(+Puzzle:list(?)) is nondet.
 % Fill in the uninstantiated parts of Puzzle.  If this predicate
 % succeeds, the Puzzle is ground and valid, according to the
 % constraints (but there may be more constraints to be added, for
