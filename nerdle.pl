@@ -240,18 +240,6 @@ score_label(Label, GuessesCombined-SolutionScore0, GS) =>
     SolutionScore is SolutionScore0 - 100,
     GS = [Label|GuessesCombined]-SolutionScore.
 
-% TODO: remove - for testing only:
-pgr(Puzzle, Guess, ResultChars0, Result) :-
-    string_chars(Puzzle, PuzzleChars),
-    string_chars(Guess, GuessChars),
-    puzzle_guess_result(PuzzleChars, GuessChars, ResultChars0),
-    maplist(grb, ResultChars0, ResultChars),
-    string_chars(Result, ResultChars).
-
-grb(緑, g).
-grb(紅, r).
-grb(黒, b).
-
 %! puzzle_guess_result(+Puzzle, +Guess, -Result) :-
 puzzle_guess_result(Puzzle, Guess, Result) :-
     msort(Puzzle, PuzzleSorted),

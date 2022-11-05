@@ -58,7 +58,22 @@ puzzle_solve_all(GuessResults, Answer, PuzzleStrs) :-
     append(GuessResults,
            [Answer-"gggggggg"],
            GuessResultsAll),
-    puzzle_solve_all(GuessResultsAll, [Answer]).
+    puzzle_solve_all(GuessResultsAll, [Answer]),
+    maplist(check_guess_result(Answer), GuessResults).
+
+check_guess_result(Answer, Guess-Result) :-
+    assertion(pgr(Answer, Guess, _, Result)).
+
+pgr(Puzzle, Guess, ResultChars0, Result) :-
+    string_chars(Puzzle, PuzzleChars),
+    string_chars(Guess, GuessChars),
+    puzzle_guess_result(PuzzleChars, GuessChars, ResultChars0),
+    maplist(grb, ResultChars0, ResultChars),
+    string_chars(Result, ResultChars).
+
+grb(緑, g).
+grb(紅, r).
+grb(黒, b).
 
 test(p1, Ps == ["69-50=19",
                 "61-50=11",
@@ -148,6 +163,14 @@ test(p6, Ps == ["42/7+2=8","48/8+2=8"]) :-
                       "20/5+4=8"-
                       "rbgbgrgg"],
                      "42/7+2=8",
+                     Ps).
+
+test(p7, Ps == ["9*2*5=90","9*5*2=90"]) :-
+    puzzle_solve_all(["6/1*9=54"-
+                      "bbbgrgrb",
+                      "3+9*8=75"-
+                      "bbrgbgbr"],
+                     "9*2*5=90",
                      Ps).
 
 :- end_tests(nerdle).
