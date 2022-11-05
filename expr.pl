@@ -1,7 +1,8 @@
 % -*- mode: Prolog; coding: utf-8 -*-
 
 :- module(expr,
-          [expr/2,
+          [expr//1,
+           num//1,
            eval/2
           ]).
 
@@ -24,30 +25,28 @@ eval(Expr, Result) :-
 eval_(X+Y, Result) => eval(X, X2), eval(Y, Y2), Result is X2+Y2.
 eval_(X-Y, Result) => eval(X, X2), eval(Y, Y2), Result is X2-Y2.
 eval_(X*Y, Result) => eval(X, X2), eval(Y, Y2), Result is X2*Y2.
-eval_(X/Y, Result) => eval(X, X2), eval(Y, Y2), Result is X2/Y2.
+eval_(X/Y, Result) => eval(X, X2), eval(Y, Y2), \+ Y2 = 0,
+                                                Result is X2/Y2.
 eval_(X,   Result), rational(X) => Result = X.
 
-:- det(expr/2).
-%! expr(+String:string, -Expr) is det.
-% Parse an expression to produce a term. Fails if String isn't a valid
-% expression. The parser is "greedy" and has cuts in it to ensure
-% determinicity.
-expr(String, Expr) :-
-    string_chars(String, Chars),
-    phrase(expr(Expr), Chars).
+%! expr(?Expr:term)//.
+% Parse an expression (list of chars) to produce a term. Fails if it
+% doesn't get isn't a valid expression.  expr//1 can be used either to
+% parse a list of chars to produce a term, or it can process a term to
+% produce a list of chars; and if the list of chars is bounded in
+% size, it can generate all combinations of terms and lists of chars.
+expr(Expr) --> term(Term), expr_(Term, Expr).
 
-%! num(+String:string, -Num) is det.
+%! num(+String:string, -Num) is semidet.
 % Parse a number (fails if an invalid string). It is not allowed to
 % start with "0" nor with a "+" or "-" sign.
 num(String, Num) :-
     string_chars(String, Chars),
     phrase(num(Num), Chars).
 
-expr(Expr) --> term(Term), expr_(Term, Expr).
-
 expr_(Left, Expr) -->
     plus_minus(Left, Term, Left2),
-    term(Term), !,
+    term(Term),
     expr_(Left2, Expr).
 expr_(Expr, Expr) --> [].
 
@@ -55,12 +54,12 @@ plus_minus(Left, Term, Left+Term) --> ['+'].
 plus_minus(Left, Term, Left-Term) --> ['-'].
 
 term(Term) -->
-    num(Num), !,
+    num(Num),
     term_(Num, Term).
 
 term_(Left, Term) -->
     times_divide(Left, Num, Left2),
-    num(Num), !,
+    num(Num),
     term_(Left2, Term).
 term_(Expr, Expr) --> [].
 
@@ -71,11 +70,11 @@ num(Num) --> digit1(Accum), digits(Accum, Num).
 num(0) --> ['0'].
 
 digits(Accum, Num) -->
-    digit0(N), !,
+    digit0(N),
     digits(Accum * 10 + N, Num).
 digits(Accum, Accum) --> [].
 
-digit0(Num) --> [D], { digit0(D, Num) }, !.
+digit0(Num) --> [D], { digit0(D, Num) }.
 digit0('0', 0).
 digit0('1', 1).
 digit0('2', 2).
@@ -87,7 +86,7 @@ digit0('7', 7).
 digit0('8', 8).
 digit0('9', 9).
 
-digit1(Num) --> [D], { digit1(D, Num) }, !.
+digit1(Num) --> [D], { digit1(D, Num) }.
 digit1('1', 1).
 digit1('2', 2).
 digit1('3', 3).

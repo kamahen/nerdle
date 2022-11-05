@@ -41,6 +41,7 @@ An example:
 ****************************************************/
 
 % :- set_prolog_flag(autoload, false).
+:- use_module(expr, [expr//1, eval/2]).
 :- use_module(library(apply), [include/3, exclude/3,
                                maplist/2, maplist/3, maplist/4,
                                foldl/4]).
@@ -205,34 +206,10 @@ constrain_black_(Puzzle, G) :-
 puzzle_fill(Puzzle) :-
     append(Left, ['='|Right], Puzzle),
     puzzle(Left, Right),
-    valid_left(Left),
-    atomic_list_concat(Left, LeftString),
-    catch(term_string(LeftTerm, LeftString), _, fail),
-    catch(LeftValue is LeftTerm, _, fail),
+    phrase(expr(LeftTerm), Left),
+    eval(LeftTerm, LeftValue),
     integer(LeftValue),
-    atom_chars(LeftValue, Right),
-    valid_number(Right).
-
-valid_left(Left) :- phrase(valid_left, Left).
-
-valid_number(Number) :- phrase(valid_number, Number).
-
-valid_left --> valid_number.
-valid_left --> valid_number, operator, valid_left.
-
-valid_number -->
-    digit(D),
-    (  { D = '0' }
-    -> [ ]
-    ;  valid_number_rest
-    ).
-
-valid_number_rest --> [].
-valid_number_rest --> digit(_), valid_number_rest.
-
-digit(C) --> [C], { digit(C) }.
-
-operator --> [C], { operator(C) }.
+    atom_chars(LeftValue, Right).
 
 %! puzzle(-Left:list, -Right:list) is nondet.
 % Instantiate Left and Right to two lists that can be combined with a
@@ -258,22 +235,6 @@ score_label(Label, GuessesCombined-Score, GS), memberchk(Label, GuessesCombined)
 score_label(Label, GuessesCombined-Score0, GS) =>
     Score is Score0 - 100,
     GS = [Label|GuessesCombined]-Score.
-
-digit('0').
-digit('1').
-digit('2').
-digit('3').
-digit('4').
-digit('5').
-digit('6').
-digit('7').
-digit('8').
-digit('9').
-
-operator('+').
-operator('-').
-operator('*').
-operator('/').
 
 green(緑).
 green(g).
@@ -305,4 +266,3 @@ normalize_result(紫,    紅).
 normalize_result(黄,    紅).
 normalize_result(r,     紅).
 normalize_result(red,   紅).
-

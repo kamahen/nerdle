@@ -9,6 +9,7 @@
 :- use_module(library(plunit)).
 :- use_module(nerdle).
 :- use_module(expr).
+:- use_module(library(lists), [append/3]).
 
 test_nerdle :-
     run_tests([ nerdle
@@ -16,24 +17,48 @@ test_nerdle :-
 
 :- begin_tests(nerdle).
 
-test(eval, T-R == 0-0) :-
-    expr("0", T),
+test(eval, all(T-R == [0-0])) :-
+    phrase(expr(T), ['0']),
     eval(T, R).
-test(eval, T-R == 1-1) :-
-    expr("1", T),
+test(eval, all(T-R == [1-1])) :-
+    phrase(expr(T), ['1']),
     eval(T, R).
-test(eval, T-R == (1*10+2)*10+3-123) :-
-    expr("123", T),
+test(eval, all(T-R == [(1*10+2)*10+3-123])) :-
+    phrase(expr(T), ['1','2','3']),
     eval(T, R).
-test(eval, T-R == (4/8*(1*10+8)+5)-14) :-
-     expr("4/8*18+5", T),
+test(eval, all(T-R == [(4/8*(1*10+8)+5)-14])) :-
+     phrase(expr(T), ['4','/','8','*','1','8','+','5']),
      eval(T, R).
+test(eval, all(E == [5+((2*10+0)*10+4),
+                     5+((2*10+1)*10+4),
+                     5+((2*10+2)*10+4),
+                     5+((2*10+3)*10+4),
+                     5+((2*10+4)*10+4),
+                     5+((2*10+5)*10+4),
+                     5+((2*10+6)*10+4),
+                     5+((2*10+7)*10+4),
+                     5+((2*10+8)*10+4),
+                     5+((2*10+9)*10+4),
+                     5+2*4,
+                     5+2/4,
+                     5+2+4,
+                     5+2-4])) :-
+    R = [_,_,_,_,_],
+    phrase(expr(E), R),
+    R = ['5','+','2',_,'4'].
 test(eval, fail) :-
-    expr("01", _R).
+    phrase(expr(_R), ['0','1']).
 test(eval, fail) :-
-    expr("-1", _R).
+    phrase(expr(_R), ['-','1']).
 test(eval, error(existence_error(matching_rule,_))) :-
     eval('abc', _R).
+
+puzzle_solve_all(GuessResults, Answer, PuzzleStrs) :-
+    puzzle_solve_all(GuessResults, PuzzleStrs),
+    append(GuessResults,
+           [Answer-"gggggggg"],
+           GuessResultsAll),
+    puzzle_solve_all(GuessResultsAll, [Answer]).
 
 test(p1, Ps == ["69-50=19",
                 "61-50=11",
@@ -45,8 +70,7 @@ test(p1, Ps == ["69-50=19",
                       "rbgbgggb",
                       "63-50=13"-
                       "gbgggggb"],
-                    % "69-50=19"-  % answer
-                    % "gggggggg"
+                     "69-50=19",
                      Ps).
 
 test(p2, Ps == ["98/7-6=8",
@@ -57,8 +81,7 @@ test(p2, Ps == ["98/7-6=8",
                       "bbrbbrgr",
                       "64/4-9=7"-
                       "rbgbgrgr"],
-                      % "98/7-6=8"-  % answer
-                      % "gggggggg"
+                     "98/7-6=8",
                      Ps).
 
 test(p3, Ps == ["2-10/5=0"]) :-
@@ -86,16 +109,25 @@ test(p4, Ps == ["8-12+9=5",
                       "bgbrrrgr"],
                     % "8-12+9=5"-
                     % "rggggbgb"
-                    % "6-12+8=2" % answer
+                    "6-12+8=2",
                     Ps).
+test(p4, Ps == ["6-12+8=2"]) :-
+    puzzle_solve_all(["7+8-2=13"-
+                      "brrrrrrb",
+                      "0-4+12=8"-
+                      "bgbrrrgr",
+                      "8-12+9=5"-
+                      "rggggbgb"],
+                     "6-12+8=2",
+                     Ps).
 % same solution as above, but different starting guess
 test(p4, Ps == ["6-12+8=2"]) :-
      puzzle_solve_all(["9/3*6=18"-
                        "bbbbrrrr",
                        "0+14-8=6"-
                        "brgbrggr"],
-                     % "6-12+8=2" % answer
-                     Ps).
+                      "6-12+8=2",
+                      Ps).
 
 test(p5, Ps == ["1/8*72=9",
                 "2/4*18=9",
@@ -107,7 +139,15 @@ test(p5, Ps == ["1/8*72=9",
                       "rgbgbrrr",
                       "0/1*89=0"- % bad guess, because of bug
                       "bgrgrrgb"],
-                    % "1/8*72=9" % answer
+                     "1/8*72=9",
+                     Ps).
+
+test(p6, Ps == ["42/7+2=8","48/8+2=8"]) :-
+    puzzle_solve_all(["9/3*6=18"-
+                      "brbbbrbg",
+                      "20/5+4=8"-
+                      "rbgbgrgg"],
+                     "42/7+2=8",
                      Ps).
 
 :- end_tests(nerdle).
