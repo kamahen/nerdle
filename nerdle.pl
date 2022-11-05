@@ -1,8 +1,9 @@
-% -*- mode: Prolog; coding: utf-8 -*-
+% -*- mode; coding: utf-8 -*-
 
 :- module(nerdle,
           [puzzle_solve/3,
-           puzzle_solve_all/2
+           puzzle_solve_all/2,
+           puzzle_guess_result/3 % For debugging.
           ]).
 
 :- encoding(utf8).
@@ -20,11 +21,11 @@ Puzzle - a list of 8 items (or "tiles", to use the game's terminology):
     with "0", nor are unary operators ("+", "-") allowed.
 
   - A Result is a list of "colors" of the items from the guess
-    緑 (green): correct symbol at this location
-    黒 (black): this symbol doesn't occur elsewhere
-    紅 (red):   incorrect symbol at this location - maybe should be
-                赤 (red) or 紫 (purple)? ...
-                Wordle uses yellow (黄)
+    緑 (g) (green): correct symbol at this location
+    黒 (b) (black): this symbol doesn't occur elsewhere
+    紅 (r) (red):   incorrect symbol at this location - maybe should be
+                    赤 (red) or 紫 (purple)? ...
+                    Wordle uses yellow (黄) (y)
 
 An example:
    Guess =  ['1', '2', '+', '1', '4', '=', '2', '6']
@@ -47,7 +48,7 @@ An example:
                                foldl/4]).
 :- use_module(library(pairs), [pairs_keys_values/3, pairs_values/2,
                                group_pairs_by_key/2]).
-:- use_module(library(lists), [append/3, append/2, member/2]).
+:- use_module(library(lists), [append/3, append/2, member/2, clumped/2]).
 :- use_module(library(dif),   [dif/2]).
 :- use_module(library(debug), [assertion/1]).
 
@@ -77,21 +78,22 @@ An example:
 % best answers first. ("Best" is defined in terms of "adds the most
 % information")
 puzzle_solve_all(GuessResults, PuzzleStrs) :-
-    setof(Score-PuzzleStr, puzzle_solve(GuessResults, Score, PuzzleStr), Xs),
+    setof(SolutionScore-PuzzleStr, puzzle_solve(GuessResults, SolutionScore, PuzzleStr), Xs),
     pairs_values(Xs, PuzzleStrs).
 
-%! puzzle_solve(+GuessResults:list(pair), -Score:integer, -PuzzleStr:string) is nondet.
+%! puzzle_solve(+GuessResults:list(pair), -SolutionScore:integer, -PuzzleStr:string) is nondet.
 % Process one set of inputs, producing a puzzle result (backtracks).
 % GuessResults is as for puzzle_solve_all/2.
-% Score: the more negative, the better (for easier sorting).
-puzzle_solve(GuessResults, Score, PuzzleStr) :-
+% SolutionScore: the more negative, the better (sorting will put the
+%                "best" first).
+puzzle_solve(GuessResults, SolutionScore, PuzzleStr) :-
     process_inputs(GuessResults, Guesses, Results),
     assertion(maplist(maplist(verify_result), Results)),
     maplist(constrain(Puzzle), Guesses, Results),
     constrain_black(Puzzle, Guesses, Results),
     puzzle_fill(Puzzle),
     maplist(constrain_counts(Puzzle), Guesses, Results),
-    score(Puzzle, Guesses, Score),
+    solution_score(Puzzle, Guesses, SolutionScore),
     string_chars(PuzzleStr, Puzzle).
 
 %! verify_result(C:atom) is nondet.
@@ -220,38 +222,85 @@ puzzle(Left, Right) :-
     length(Left, LenLeft),
     length(Right, LenRight).
 
-:- det(score/3).
-%! score(+Puzzle:list(atom), +Guesses:list(list(atom)), -Score:int) is det.
+:- det(solution_score/3).
+%! solution_score(+Puzzle:list(atom), +Guesses:list(list(atom)), -SolutionScore:int) is det.
 % Compute a score for the Puzzle results together with the list of
 % guesses. The score is negative, so that the lower negative number is
-% a higher score (this make sorting eaiser).
-score(Puzzle, Guesses, Score) :-
+% a higher score (this make sorting eaiser). In case of a tie, Prolog
+% standard term ordering is used, which more-or-less results in terms
+% with lower digits coming first.
+solution_score(Puzzle, Guesses, SolutionScore) :-
     append(Guesses, GuessesCombined0),
     sort(GuessesCombined0, GuessesCombined),
-    foldl(score_label, Puzzle, GuessesCombined-0, _-Score).
+    foldl(score_label, Puzzle, GuessesCombined-0, _-SolutionScore).
 
-score_label(Label, GuessesCombined-Score, GS), memberchk(Label, GuessesCombined) =>
-    GS = GuessesCombined-Score.
-score_label(Label, GuessesCombined-Score0, GS) =>
-    Score is Score0 - 100,
-    GS = [Label|GuessesCombined]-Score.
+score_label(Label, GuessesCombined-SolutionScore, GS), memberchk(Label, GuessesCombined) =>
+    GS = GuessesCombined-SolutionScore.
+score_label(Label, GuessesCombined-SolutionScore0, GS) =>
+    SolutionScore is SolutionScore0 - 100,
+    GS = [Label|GuessesCombined]-SolutionScore.
+
+% TODO: remove - for testing only:
+pgr(Puzzle, Guess, ResultChars0, Result) :-
+    string_chars(Puzzle, PuzzleChars),
+    string_chars(Guess, GuessChars),
+    puzzle_guess_result(PuzzleChars, GuessChars, ResultChars0),
+    maplist(grb, ResultChars0, ResultChars),
+    string_chars(Result, ResultChars).
+
+grb(緑, g).
+grb(紅, r).
+grb(黒, b).
+
+%! puzzle_guess_result(+Puzzle, +Guess, -Result) :-
+puzzle_guess_result(Puzzle, Guess, Result) :-
+    msort(Puzzle, PuzzleSorted),
+    clumped(PuzzleSorted, Counts),
+    dict_create(CountsDict, counts, Counts),
+    foldl(guess_result, Puzzle, Guess, Result, CountsDict, _).
+
+guess_result(PuzzleItem, GuessItem, Result, Counts, Counts2) :-
+    get_dict_default(GuessItem, Counts, 0, Count),
+    guess_result_(PuzzleItem, GuessItem, Result, Count, Counts, Counts2).
+
+guess_result_(PuzzleItem, GuessItem, Result, Count, Counts, Counts2), PuzzleItem = GuessItem =>
+    assertion(Count >= 0),
+    Result = 緑,  % green
+    CountMinusOne is Count - 1,
+    put_dict(GuessItem, Counts, CountMinusOne, Counts2).
+guess_result_(_PuzzleItem, GuessItem, Result, Count, Counts, Counts2), Count > 0 =>
+    Result = 紅,  % red
+    Count2 is Count - 1,
+    put_dict(GuessItem, Counts, Count2, Counts2).
+guess_result_(_PuzzleItem, _GuessItem, Result, Count, Counts, Counts2) =>
+    assertion(Count = 0),
+    Result = 黒,  % black
+    Counts2 = Counts.
+
+get_dict_default(Item, Dict, Default, Value) :-
+    (  get_dict(Item, Dict, Value)
+    -> true
+    ;  Value = Default
+    ).
 
 green(緑).
-green(g).
-green(grn).
 green(green).
+green(grn).
+green(g).
 
 black(黒).
+black(black).
 black(b).
 black(blk).
-black(black).
 
 red(紅).
 red(赤).
 red(紫).
 red(黄).
-red(r).
 red(red).
+red(yellow).
+red(r).
+red(y).
 
 :- det(normalize_result/2).
 normalize_result(緑,    緑).
