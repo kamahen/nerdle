@@ -42,7 +42,7 @@ An example:
 ****************************************************/
 
 % :- set_prolog_flag(autoload, false).
-:- use_module(expr, [expr//1, eval/2]).
+:- use_module(expr, [expr//1, eval/2, puzzle/2]).
 :- use_module(library(apply), [include/3, exclude/3,
                                maplist/2, maplist/3, maplist/4,
                                foldl/4]).
@@ -211,16 +211,8 @@ puzzle_fill(Puzzle) :-
     phrase(expr(LeftTerm), Left),
     eval(LeftTerm, LeftValue),
     integer(LeftValue),
+    LeftValue >= 0,
     atom_chars(LeftValue, Right).
-
-%! puzzle(-Left:list, -Right:list) is nondet.
-% Instantiate Left and Right to two lists that can be combined with a
-% '='. Left's and Right's contents are uninstantiated.
-puzzle(Left, Right) :-
-    between(2, 6, LenLeft),
-    LenRight is 7 - LenLeft,
-    length(Left, LenLeft),
-    length(Right, LenRight).
 
 :- det(solution_score/3).
 %! solution_score(+Puzzle:list(atom), +Guesses:list(list(atom)), -SolutionScore:int) is det.

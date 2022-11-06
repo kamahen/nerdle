@@ -175,3 +175,16 @@ test(p7, Ps == ["9*2*5=90","9*5*2=90"]) :-
 
 :- end_tests(nerdle).
 
+puzzle_fill_string(S) :-
+    nerdle:puzzle_fill(P),
+    % TODO: improve the following (and something similar for division):
+    % \+ ( P = [_,_,_,_,_,_,'=','0'],
+    %      member('*', P) ),
+    string_chars(S, P).
+
+write_all_puzzles(File) :-
+    setup_call_cleanup(
+        open(File, write, Fstream),
+        forall(puzzle_fill_string(S),
+               format(Fstream, '~q.~n', [a_puzzle(S)])),
+        close(Fstream)).

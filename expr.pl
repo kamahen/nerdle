@@ -2,11 +2,28 @@
 
 :- module(expr,
           [expr//1,
+           random_expr/2,
            num//1,
-           eval/2
+           eval/2,
+           puzzle/2
           ]).
 
 :- encoding(utf8).
+
+:- use_module(library(random), [random_between/3, random_member/2]).
+
+%! puzzle(-Left:list, -Right:list) is nondet.
+% Instantiate Left and Right to two lists that can be combined with a
+% '='. Left's and Right's contents are uninstantiated.
+puzzle(Left, Right) :-
+    % 9*99=891, so Left must be at least 4 in length
+    between(4, 6, LenLeft),
+    puzzle_(LenLeft, Left, Right).
+
+puzzle_(LenLeft, Left, Right) :-
+    LenRight is 7 - LenLeft,
+    length(Left, LenLeft),
+    length(Right, LenRight).
 
 % Predicates to parse an expresssion string to a term, and to evaluate
 % the term.
@@ -29,20 +46,13 @@ eval_(X/Y, Result) => eval(X, X2), eval(Y, Y2), \+ Y2 = 0,
                                                 Result is X2/Y2.
 eval_(X,   Result), rational(X) => Result = X.
 
-%! expr(?Expr:term)//.
+%! expr(?Expr:term)//
 % Parse an expression (list of chars) to produce a term. Fails if it
 % doesn't get isn't a valid expression.  expr//1 can be used either to
 % parse a list of chars to produce a term, or it can process a term to
 % produce a list of chars; and if the list of chars is bounded in
 % size, it can generate all combinations of terms and lists of chars.
 expr(Expr) --> term(Term), expr_(Term, Expr).
-
-%! num(+String:string, -Num) is semidet.
-% Parse a number (fails if an invalid string). It is not allowed to
-% start with "0" nor with a "+" or "-" sign.
-num(String, Num) :-
-    string_chars(String, Chars),
-    phrase(num(Num), Chars).
 
 expr_(Left, Expr) -->
     plus_minus(Left, Term, Left2),
@@ -66,6 +76,9 @@ term_(Expr, Expr) --> [].
 times_divide(Left, Num, Left*Num) --> ['*'].
 times_divide(Left, Num, Left/Num) --> ['/'].
 
+%! num(?Num)//
+% Parse a number (fails if an invalid string). It is not allowed to
+% start with "0" nor with a "+" or "-" sign.
 num(Num) --> digit1(Accum), digits(Accum, Num).
 num(0) --> ['0'].
 
@@ -96,3 +109,50 @@ digit1('6', 6).
 digit1('7', 7).
 digit1('8', 8).
 digit1('9', 9).
+
+random_expr(Left, Right) :-
+    % 9*99=891, so Left must be at least 4 in length
+    random_between(4, 6, LenLeft),
+    puzzle_(LenLeft, Left, Right),
+    maplist(random_label, Left),
+    % TODO: refactor the following from nerdle:puzzle_fill
+    phrase(expr(LeftTerm), Left),
+    eval(LeftTerm, LeftValue),
+    integer(LeftValue),
+    LeftValue >= 0,
+    atom_chars(LeftValue, Right).
+
+random_expr --> random_num, random_expr_.
+
+random_expr_ -->
+    { random_label(C) },
+    [C],
+    (  { member(C, ['+','-','*','-']) }
+    -> random_num,
+       random_expr_
+    ;  random_num_
+    ).
+
+random_num -->
+    { random_member(C, ['0','1','2','3','4',
+                        '5','6','7','8','9']) },
+    [C],
+    (  { C == '0' }
+    -> []
+    ;  random_num_
+    ).
+
+random_num_ -->
+    { random_member(C, ['0','1','2','3','4',
+                        '5','6','7','8','9',
+                        '','','','','']) },
+    (  { C = '' }
+    -> []
+    ;  [C],
+       random_num_
+    ).
+
+random_label(L) :-
+    random_member(L, ['+','-','*','-',
+                      '0','1','2','3','4',
+                      '5','6','7','8','9']).
