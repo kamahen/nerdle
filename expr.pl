@@ -2,11 +2,25 @@
 
 :- module(expr,
           [expr//1,
+           random_expr/2,
            num//1,
-           eval/2
+           eval/2,
+           puzzle/2
           ]).
 
 :- encoding(utf8).
+
+%! puzzle(-Left:list, -Right:list) is nondet.
+% Instantiate Left and Right to two lists that can be combined with a
+% '='. Left's and Right's contents are uninstantiated.
+puzzle(Left, Right) :-
+    between(2, 6, LenLeft),
+    puzzle_(LenLeft, Left, Right).
+
+puzzle_(LenLeft, Left, Right) :-
+    LenRight is 7 - LenLeft,
+    length(Left, LenLeft),
+    length(Right, LenRight).
 
 % Predicates to parse an expresssion string to a term, and to evaluate
 % the term.
@@ -29,7 +43,7 @@ eval_(X/Y, Result) => eval(X, X2), eval(Y, Y2), \+ Y2 = 0,
                                                 Result is X2/Y2.
 eval_(X,   Result), rational(X) => Result = X.
 
-%! expr(?Expr:term)//.
+%! expr(?Expr:term)//
 % Parse an expression (list of chars) to produce a term. Fails if it
 % doesn't get isn't a valid expression.  expr//1 can be used either to
 % parse a list of chars to produce a term, or it can process a term to
@@ -96,3 +110,38 @@ digit1('6', 6).
 digit1('7', 7).
 digit1('8', 8).
 digit1('9', 9).
+
+random_betweens(L, U, R) :-
+    random_between(L, U, R).
+random_betweens(L, U, R) :-
+    random_betweens(L, U, R).
+
+random_expr(Left, Right) :-
+    random_between(2, 6, LenLeft),
+    puzzle_(LenLeft, Left, Right),
+    maplist(random_label, Left),
+    % TODO: refactor the following from nerdle:puzzle_fill
+    phrase(expr(LeftTerm), Left),
+    eval(LeftTerm, LeftValue),
+    integer(LeftValue),
+    LeftValue >= 0,
+    atom_chars(LeftValue, Right).
+
+random_label(L) :-
+    random_between(1, 14, I),
+    random_label(I, L).
+
+random_label(0, '0').
+random_label(1, '1').
+random_label(2, '2').
+random_label(3, '3').
+random_label(4, '4').
+random_label(5, '5').
+random_label(6, '6').
+random_label(7, '7').
+random_label(8, '8').
+random_label(9, '9').
+random_label(10, '+').
+random_label(11, '-').
+random_label(12, '*').
+random_label(13, '/').
