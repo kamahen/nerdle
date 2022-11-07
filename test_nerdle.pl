@@ -182,5 +182,19 @@ test(p8, Ps == ["3*46=138","8*81=648","81*8=648"]) :-
                       "rrbbrrrg"],
                      "81*8=648",
                     Ps).
+test(p8, Ps == ["61*8=488","81*6=486","81*8=648"]) :-
+    puzzle_solve_all(["4*9-1=35"-
+                      "rrbbrrbb",
+                      "1/4*28=7"-
+                      "rbrrbrrb"],
+                     "81*8=648",
+                    Ps).
+test(p8, Ps == ["81*8=648"]) :-
+    puzzle_solve_all(["6+9-3=12"-
+                      "rbbbbrrb",
+                      "1*56/7=8"-
+                      "rrbrbbrg"],
+                     "81*8=648",
+                     Ps).
 
 :- end_tests(nerdle).
