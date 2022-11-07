@@ -2,7 +2,9 @@
 
 :- module(expr,
           [expr//1,
-           random_expr/2,
+           random_expr_string/1,
+           random_expr_chars/8,
+           random_expr_chars/1,
            num//1,
            eval/2,
            puzzle/2
@@ -10,7 +12,9 @@
 
 :- encoding(utf8).
 
-:- use_module(library(random), [random_between/3, random_member/2]).
+:- use_module(library(random), [random_between/3]).
+:- use_module(all_puzzles_facts, [a_puzzle/2,
+                                  a_puzzle_i_min/1,a_puzzle_i_max/1]).
 
 %! puzzle(-Left:list, -Right:list) is nondet.
 % Instantiate Left and Right to two lists that can be combined with a
@@ -30,10 +34,10 @@ puzzle_(LenLeft, Left, Right) :-
 
 :- set_prolog_flag(prefer_rationals, true).
 
-:- det(eval/2).
-%! eval(+Expr, -Result: rational) is det.
+%! eval(+Expr, -Result: rational) is nondet.
 % Expr is a term representing an arithmetic expression. Delays
 % as needed when it encounters an uninstantiated variable.
+% Fails for things like divide-by-zero.
 % Result is a rational (assuming flag `prefer_rationals` is set).
 
 eval(Expr, Result) :-
@@ -45,6 +49,25 @@ eval_(X*Y, Result) => eval(X, X2), eval(Y, Y2), Result is X2*Y2.
 eval_(X/Y, Result) => eval(X, X2), eval(Y, Y2), \+ Y2 = 0,
                                                 Result is X2/Y2.
 eval_(X,   Result), rational(X) => Result = X.
+
+:- det(random_expr_chars/8).
+random_expr_chars(C1,C2,C3,C4,C5,C6,C7,C8) :-
+    a_puzzle_i_min(Min),
+    a_puzzle_i_max(Max),
+    random_between(Min, Max, I),
+    a_puzzle(I, C1,C2,C3,C4,C5,C6,C7,C8).
+
+:- det(random_expr_chars/1).
+random_expr_chars([C1,C2,C3,C4,C5,C6,C7,C8]) :-
+    random_expr_chars(C1,C2,C3,C4,C5,C6,C7,C8).
+
+:- det(random_expr_string/1).
+%! random_expr_string(-ExprString:string) is det.
+random_expr_string(ExprString) :-
+    a_puzzle_i_min(Min),
+    a_puzzle_i_max(Max),
+    random_between(Min, Max, I),
+    a_puzzle(I, ExprString).
 
 %! expr(?Expr:term)//
 % Parse an expression (list of chars) to produce a term. Fails if it
@@ -109,50 +132,3 @@ digit1('6', 6).
 digit1('7', 7).
 digit1('8', 8).
 digit1('9', 9).
-
-random_expr(Left, Right) :-
-    % 9*99=891, so Left must be at least 4 in length
-    random_between(4, 6, LenLeft),
-    puzzle_(LenLeft, Left, Right),
-    maplist(random_label, Left),
-    % TODO: refactor the following from nerdle:puzzle_fill
-    phrase(expr(LeftTerm), Left),
-    eval(LeftTerm, LeftValue),
-    integer(LeftValue),
-    LeftValue >= 0,
-    atom_chars(LeftValue, Right).
-
-random_expr --> random_num, random_expr_.
-
-random_expr_ -->
-    { random_label(C) },
-    [C],
-    (  { member(C, ['+','-','*','-']) }
-    -> random_num,
-       random_expr_
-    ;  random_num_
-    ).
-
-random_num -->
-    { random_member(C, ['0','1','2','3','4',
-                        '5','6','7','8','9']) },
-    [C],
-    (  { C == '0' }
-    -> []
-    ;  random_num_
-    ).
-
-random_num_ -->
-    { random_member(C, ['0','1','2','3','4',
-                        '5','6','7','8','9',
-                        '','','','','']) },
-    (  { C = '' }
-    -> []
-    ;  [C],
-       random_num_
-    ).
-
-random_label(L) :-
-    random_member(L, ['+','-','*','-',
-                      '0','1','2','3','4',
-                      '5','6','7','8','9']).

@@ -10,6 +10,8 @@
 :- use_module(nerdle).
 :- use_module(expr).
 :- use_module(library(lists), [append/3]).
+:- use_module(library(apply), [maplist/2, maplist/3]).
+:- use_module(library(debug), [assertion/1]).
 
 test_nerdle :-
     run_tests([ nerdle
@@ -173,18 +175,12 @@ test(p7, Ps == ["9*2*5=90","9*5*2=90"]) :-
                      "9*2*5=90",
                      Ps).
 
+test(p8, Ps == ["3*46=138","8*81=648","81*8=648"]) :-
+    puzzle_solve_all(["6/1*9=54"-
+                      "rbrrbrbr",
+                      "16-2*4=8"-
+                      "rrbbrrrg"],
+                     "81*8=648",
+                    Ps).
+
 :- end_tests(nerdle).
-
-puzzle_fill_string(S) :-
-    nerdle:puzzle_fill(P),
-    % TODO: improve the following (and something similar for division):
-    % \+ ( P = [_,_,_,_,_,_,'=','0'],
-    %      member('*', P) ),
-    string_chars(S, P).
-
-write_all_puzzles(File) :-
-    setup_call_cleanup(
-        open(File, write, Fstream),
-        forall(puzzle_fill_string(S),
-               format(Fstream, '~q.~n', [a_puzzle(S)])),
-        close(Fstream)).

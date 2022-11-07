@@ -3,6 +3,7 @@
 :- module(nerdle,
           [puzzle_solve/3,
            puzzle_solve_all/2,
+           puzzle_fill/1,
            puzzle_guess_result/3 % For debugging.
           ]).
 
