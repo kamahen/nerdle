@@ -10,6 +10,8 @@
 :- use_module(nerdle).
 :- use_module(expr).
 :- use_module(library(lists), [append/3]).
+:- use_module(library(apply), [maplist/2, maplist/3]).
+:- use_module(library(debug), [assertion/1]).
 
 test_nerdle :-
     run_tests([ nerdle
@@ -173,5 +175,34 @@ test(p7, Ps == ["9*2*5=90","9*5*2=90"]) :-
                      "9*2*5=90",
                      Ps).
 
-:- end_tests(nerdle).
+test(p8, Ps == ["3*46=138","8*81=648","81*8=648"]) :-
+    puzzle_solve_all(["6/1*9=54"-
+                      "rbrrbrbr",
+                      "16-2*4=8"-
+                      "rrbbrrrg"],
+                     "81*8=648",
+                    Ps).
+test(p8, Ps == ["61*8=488","81*6=486","81*8=648"]) :-
+    puzzle_solve_all(["4*9-1=35"-
+                      "rrbbrrbb",
+                      "1/4*28=7"-
+                      "rbrrbrrb"],
+                     "81*8=648",
+                    Ps).
+test(p8, Ps == ["81*8=648"]) :-
+    puzzle_solve_all(["6+9-3=12"-
+                      "rbbbbrrb",
+                      "1*56/7=8"-
+                      "rrbrbbrg"],
+                     "81*8=648",
+                     Ps).
 
+test(p9, Ps == ["14+49=63","19+44=63"]) :-
+    puzzle_solve_all(["6+9-3=12"-
+                      "rrrbrgrb",
+                      "13+46=59"-
+                      "grggrgbr"],
+                     "19+44=63",
+                     Ps).
+
+:- end_tests(nerdle).
