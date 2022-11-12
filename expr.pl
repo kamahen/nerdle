@@ -10,9 +10,12 @@
            puzzle/2
           ]).
 
+% See README.md for an overview
+
 :- encoding(utf8).
 
 :- use_module(library(random), [random_between/3]).
+:- use_module(library(apply_macros)).
 :- use_module(all_puzzles_facts, [a_puzzle/2, a_puzzle/9,
                                   a_puzzle_i_min/1,a_puzzle_i_max/1]).
 
@@ -68,41 +71,6 @@ random_expr_string(ExprString) :-
     a_puzzle_i_max(Max),
     random_between(Min, Max, I),
     a_puzzle(I, ExprString).
-
-/*
-  findall(C1, a_puzzle(_,C1,C2,C3,C4,C5,C6,C7,C8), Cs), sort_by_frequency(Cs, CsS), writeln(CsS).
-  [1-3473, 2-2151, 3-1917, 4-1894, 9-1852, 6-1779, 5-1760, 8-1758, 7-1731, 0-251]
-
-  findall(C2, a_puzzle(_,C1,C2,C3,C4,C5,C6,C7,C8), Cs), sort_by_frequency(Cs, CsS), writeln(CsS).
-  [(*)-3094, (+)-2343, 0-1532, 2-1340, 4-1278, 6-1222, 8-1179, 1-1171, 5-1168, 3-1097, 7-1023, 9-966, (-)-739, (/)-414]
-
-  C2='*', findall(C1, a_puzzle(_,C1,C2,C3,C4,C5,C6,C7,C8), Cs), sort_by_frequency(Cs, CsS), writeln(CsS).
-  [8-403, 9-397, 6-390, 7-380, 5-366, 4-357, 3-324, 2-271, 1-206]
-
-  C1='8', C2='*', findall(C3, a_puzzle(_,C1,C2,C3,C4,C5,C6,C7,C8), Cs), sort_by_frequency(Cs, CsS), writeln(CsS).
-
-  C1='8', C2='*', C3='9', findall(C4, a_puzzle(_,C1,C2,C3,C4,C5,C6,C7,C8), Cs), sort_by_frequency(Cs, CsS), writeln(CsS).
-  [9-51, 6-50, 3-48, 5-48, 4-47, 7-47, 8-47, 2-42, 1-23]
-
-  ... let's try ['8',*,'9','2','=','7','3','6']
-            or  ['8',*,'9','/','2','=','3','6']
-
-  Let's look at totals for all labels
-  findall(C, char_in_puzzle(C), Cs), sort_by_frequency(Cs, CsS), writeln(CsS).
-     [(=)-18566, 1-15159, 2-12089, 4-10816, 3-10467, 6-10009, 5-9990, 8-9495, (-)-9066, 7-8998, 9-8950, (+)-8256, (*)-6122, 0-5973, (/)-4572]
-
-  C5='=', aggregate_all(count, a_puzzle(_,C1,C2,C3,C4,C5,C6,C7,C8), Count).
-  Count =  1318
-  C6='='  10914
-  C7='='   6334
-
-  So, maybe:
-  ['4','*','9','-','1','=','3','5']
-
-  Or (better?):
-  ['6','+','9','-','3','=','1','2']
-      C7='1', C8='2',C2='+',C6='=', puzzle_fill([C1,C2,C3,C4,C5,C6,C7,C8]),P=[C1,C2,C3,C4,C5,C6,C7,C8], sort(P,PS), length(PS,8).
-*/
 
 sort_by_frequency(List, Sorted) :-
     % TODO: use library(aggregate)

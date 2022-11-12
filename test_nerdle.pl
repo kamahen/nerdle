@@ -205,4 +205,43 @@ test(p9, Ps == ["14+49=63","19+44=63"]) :-
                      "19+44=63",
                      Ps).
 
+test(p10, Ps == ["5*51=255"]) :-
+    puzzle_solve_all(["6+9-3=12"-
+                      "bbbbbrrr",
+                      "1*20/4=5"-
+                      "rgrbbbrg"],
+                     "5*51=255",
+                     Ps).
+
+test(p11, Ps == ["31-4*6=7","36-5*7=1","36-7*5=1","43-7*6=1","31-5*5=6","31-5*6=1"]) :-
+    puzzle_solve_all(["6+9-3=12"-
+                      "rbbrrrrb",
+                      "10-6/3=8"-
+                      "rbgrbrgb"],
+                     "31-5*6=1",
+                     Ps).
+test(p11, Ps == ["31-5*6=1"]) :-
+     puzzle_solve_all(["9/3*8=24"-
+                        "bbrrbrbb",
+                        "3*7-15=6"-
+                        "grbrrrgr"],
+                      "31-5*6=1",
+                      Ps).
+
+test(p12, Ps == ["405/9=45"]) :-
+     puzzle_solve_all(["3*8/1=24"-
+                       "bbbgbgbr",
+                       '450/6=75'-  % atom instead of string
+                        grrgbgbg],
+                      "405/9=45",
+                      Ps).
+
+test(p13, Ps == ["97-31=66"]) :-
+    puzzle_solve_all(["3*8/1=24"-
+                      "rbbbggbb",
+                      "19+31=50"-
+                      "brbgggbb"],
+                     "97-31=66",
+                     Ps).
+
 :- end_tests(nerdle).

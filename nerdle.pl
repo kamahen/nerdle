@@ -45,8 +45,8 @@ An example:
 % :- set_prolog_flag(autoload, false).
 :- use_module(expr, [expr//1, eval/2, puzzle/2]).
 :- use_module(library(apply), [include/3, exclude/3,
-                               maplist/2, maplist/3, maplist/4,
-                               foldl/4]).
+                               foldl/4, foldl/5, foldl/6]).
+:- use_module(library(apply_macros)). % defines: [maplist/2, maplist/3, maplist/4, phrase/2]).
 :- use_module(library(pairs), [pairs_keys_values/3, pairs_values/2,
                                group_pairs_by_key/2]).
 :- use_module(library(lists), [append/3, append/2, member/2, clumped/2]).
@@ -234,32 +234,44 @@ score_label(Label, GuessesCombined-SolutionScore0, GS) =>
     GS = [Label|GuessesCombined]-SolutionScore.
 
 %! puzzle_guess_result(+Puzzle, +Guess, -Result) :-
+% Compute the result (緑/紅/黒 green/red/black) from a Puzzle and a Guess.
 puzzle_guess_result(Puzzle, Guess, Result) :-
     msort(Puzzle, PuzzleSorted),
     clumped(PuzzleSorted, Counts),
-    dict_create(CountsDict, counts, Counts),
+    dict_create(CountsDict0, counts, Counts),
+    % A black result for a label can occur before a green result, so
+    % reduce the count for all green (match) results
+    foldl(remove_green_count, Puzzle, Guess, CountsDict0, CountsDict),
     foldl(guess_result, Puzzle, Guess, Result, CountsDict, _).
+
+remove_green_count(PuzzleItem, GuessItem, Counts, Counts2), PuzzleItem = GuessItem =>
+    get_dict_default(GuessItem, Counts, 0, Count),
+    CountMinusOne is Count - 1,
+    put_dict(GuessItem, Counts, CountMinusOne, Counts2).
+remove_green_count(_PuzzleItem, _GuessItem, Counts, Counts2) =>
+    Counts2 = Counts.
 
 guess_result(PuzzleItem, GuessItem, Result, Counts, Counts2) :-
     get_dict_default(GuessItem, Counts, 0, Count),
     guess_result_(PuzzleItem, GuessItem, Result, Count, Counts, Counts2).
 
-guess_result_(PuzzleItem, GuessItem, Result, Count, Counts, Counts2), PuzzleItem = GuessItem =>
-    assertion(Count >= 0),
+guess_result_(Item, Item, Result, _Count, Counts, Counts2) =>
     Result = 緑,  % green
-    CountMinusOne is Count - 1,
-    put_dict(GuessItem, Counts, CountMinusOne, Counts2).
+    Counts2 = Counts.
 guess_result_(_PuzzleItem, GuessItem, Result, Count, Counts, Counts2), Count > 0 =>
     Result = 紅,  % red
-    Count2 is Count - 1,
-    put_dict(GuessItem, Counts, Count2, Counts2).
-guess_result_(_PuzzleItem, _GuessItem, Result, Count, Counts, Counts2) =>
-    assertion(Count = 0),
+    CountMinusOne is Count - 1,
+    put_dict(GuessItem, Counts, CountMinusOne, Counts2).
+guess_result_(_PuzzleItem, _GuessItem, Result, _Count, Counts, Counts2) =>
     Result = 黒,  % black
     Counts2 = Counts.
 
-get_dict_default(Item, Dict, Default, Value) :-
-    (  get_dict(Item, Dict, Value)
+:- det(get_dict_default/4).
+%! get_dict_default(+Key, +Dict:dict, +Default, -Value) is det.
+% Like get_dict(Key, Dict, Value), but unifying Value with Default
+% if Key isn't in Dict.
+get_dict_default(Key, Dict, Default, Value) :-
+    (  get_dict(Key, Dict, Value)
     -> true
     ;  Value = Default
     ).
