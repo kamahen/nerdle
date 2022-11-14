@@ -13,6 +13,8 @@
 
 A "helper" / solver for the Nerdle puzzle (http://nerdlegame.com).
 
+See README.md for an overview
+
 Terminology/conventions:
 
 Puzzle - a list of 8 items (or "tiles", to use the game's terminology):
@@ -79,7 +81,9 @@ An example:
 % best answers first. ("Best" is defined in terms of "adds the most
 % information")
 puzzle_solve_all(GuessResults, PuzzleStrs) :-
-    setof(SolutionScore-PuzzleStr, puzzle_solve(GuessResults, SolutionScore, PuzzleStr), Xs),
+    setof(SolutionScore-PuzzleStr,
+          puzzle_solve(GuessResults, SolutionScore, PuzzleStr),
+          Xs),
     pairs_values(Xs, PuzzleStrs).
 
 %! puzzle_solve(+GuessResults:list(pair), -SolutionScore:integer, -PuzzleStr:string) is nondet.
@@ -227,6 +231,8 @@ solution_score(Puzzle, Guesses, SolutionScore) :-
     sort(GuessesCombined0, GuessesCombined),
     foldl(score_label, Puzzle, GuessesCombined-0, _-SolutionScore).
 
+% TODO: incorporate trivial_puzzle/1 from gen_all_puzzles.pl
+% DO NOT SUBMIT
 score_label(Label, GuessesCombined-SolutionScore, GS), memberchk(Label, GuessesCombined) =>
     GS = GuessesCombined-SolutionScore.
 score_label(Label, GuessesCombined-SolutionScore0, GS) =>

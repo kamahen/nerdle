@@ -10,6 +10,8 @@ puzzle_fill_string(S) :-
     \+ trivial_puzzle(P),
     string_chars(S, P).
 
+% TODO: this should instead parse P and then look for
+%       _*0, 0*_, 0/_ and/or 0*_*_, _*0*_, etc.
 trivial_puzzle(P) :-
     append(Left, ['='|_], P),
     ( P = ['0','*'|_]
