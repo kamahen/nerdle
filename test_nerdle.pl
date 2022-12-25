@@ -273,7 +273,7 @@ test(p16, Ps == ["32+49=81","52+41=93"]) :-
                      "32+49=81",
                      Ps).
 
-test(p17, Ps == ["10/4*2=5","0/1*42=0","0/14*2=0","0/41*2=0","14*0/2=0","14*1/2=7","14/4*2=7","41*0/2=0","7/14*2=1"]) :-
+test(p17, Ps == ["10/4*2=5","14*1/2=7","14/4*2=7","7/14*2=1"]) :-
     puzzle_solve_all(["6*8/12=4"-
                       "brbrrggr"],
                      "7/14*2=1",
@@ -310,40 +310,148 @@ test(p20, Ps == ["6*7+0=42","6*7-0=42","7*6+0=42","7*6-0=42","4*9+6=42","5*7+7=4
 
 test(p21, Ps == ["3*6+6=24"]) :-
     puzzle_solve_all(["4*9/3=12"-
-                     "rgbbrgbr",
+                      "rgbbrgbr",
                       "3*4+8=20"-
-                     "ggrgbggb",
+                      "ggrgbggb",
                       "3*7+4=25"-
-                     "ggbgrggb"],
-                     "3*6+6=24",
+                      "ggbgrggb"],
+                      "3*6+6=24",
                      Ps).
 test(p22, Ps == ["3*7+4=25","3*6+6=24"]) :-
     puzzle_solve_all(["4*9/3=12"-
-                     "rgbbrgbr",
+                      "rgbbrgbr",
                       "3*4+8=20"-
-                     "ggrgbggb"],
-                     "3*6+6=24",
+                      "ggrgbggb"],
+                      "3*6+6=24",
                      Ps).
 
 test(p23, Ps == ["83-41=42"]) :-
     puzzle_solve_all(["4*9/3=12"-
-                     "rbbbrgrg",
+                      "rbbbrgrg",
                       "14+38=52"-
-                     "rrbrrgbg"],
-                     "83-41=42",
+                      "rrbrrgbg"],
+                      "83-41=42",
                      Ps).
 
 test(p23, Ps == ["6+7*8=62","6+8*7=62","6+2*8=22","6+8*2=22","8+2*7=22","8+7*2=22","8+8*8=72"]) :-
     puzzle_solve_all(["4*9/3=12"-
-                     "brbbbgbg"],
-                     "6+8*2=22",
+                      "brbbbgbg"],
+                      "6+8*2=22",
                     Ps).
 test(p23, Ps == ["6+8*2=22"]) :-
     puzzle_solve_all(["4*9/3=12"-
-                     "brbbbgbg",
+                      "brbbbgbg",
                       "6+7*8=62"-
-                     "ggbgrgbg"],
-                     "6+8*2=22",
+                      "ggbgrgbg"],
+                      "6+8*2=22",
                     Ps).
+
+test(p24, Ps == ["47*8=376","48*7=336"]) :-
+    puzzle_solve_all(["4*9/3=12"-
+                      "grbbrrbb",
+                      "43-5*7=8"-
+                      "grbbrrrr"],
+                      "47*8=376",
+                     Ps).
+
+test(p25, Ps == ["15-2-6=7"]) :-
+    puzzle_solve_all(["4/3*9=12"-
+                      "bbbbbrrr",
+                      "0+12-5=7"-
+                      "bbrggrgg"],
+                      "15-2-6=7",
+                     Ps).
+
+test(p26, Ps == ["5*1*4=20"]) :-
+    puzzle_solve_all(["4/3*9=12"-
+                      "rbbgbgrr",
+                      "1+4*6=25"-
+                      "rbrgbggr"],
+                     "5*1*4=20",
+                     Ps).
+
+test(p27, Ps == ["3*63=189"]) :-
+    puzzle_solve_all(["7+8-3=12"-
+                      "bbrbrrrb",
+                      "18*3/6=9"-
+                      "rrrgbrrg"],
+                     "3*63=189",
+                     Ps).
+test(p27, Ps == ["3*63=189"]) :-
+    puzzle_solve_all(["4/3*9=12"-
+                      "bbrrrrrb",
+                      "3*8-15=9"-
+                      "ggrbrbrg"],
+                     "3*63=189",
+                     Ps).
+
+test(p28, Ps == ["216/3=72"]) :-
+     puzzle_solve_all(["7+8-3=12"-
+                       "rbbbggrg"],
+                      "216/3=72",
+                      Ps).
+test(p28, Ps == ["160/5=32","310/5=62","156/3=52","186/3=62","216/3=72","312/6=52","132/6=22"]) :-
+    puzzle_solve_all(["4/3*9=12"-
+                      "brrbbgrg"],
+                     "216/3=72",
+                     Ps).
+
+% TODO: this test is s-l-o-w (was: ~12 seconds; now: ~24 seconds with trivial_term/1)
+test(p29, [blocked(slow), Ps == ["3-10+9=2","6-13+9=2","9+3-10=2","9+6-13=2","9-10+3=2","9-13+6=2","93+9=102","99+3=102","13-2-9=2","13-9-2=2"]]) :-
+    puzzle_solve_all(["4/9*3=12"-
+                      "bbrbrrrg"],
+                     "3-10+9=2",
+                    Ps).
+
+test(p30, Ps == ["53+42=95"]) :-
+    puzzle_solve_all(["4/3*9=12"-
+                      "rbrbrgbr",
+                      "23+45=68"-
+                      "rgggrgbb"],
+                     "53+42=95",
+                     Ps).
+
+test(p31, Ps == ["234/78=3"]) :-
+    puzzle_solve_all(["7+8-3=12"-
+                      "rbrbrrbr",
+                      "37*8=296"-
+                      "rrbrrrbb"],
+                     "234/78=3",
+                     Ps).
+
+test(p32, Ps == ["5*7+4=39","5*9+3=48","7*5+4=39","8*4+7=39","9*4+0=36","9*4-0=36","9*4-6=30","9*5+3=48","3*9+7=34","9*4+7=43","9*9+3=84","9*4+3=39","9*4-3=33"]) :-
+    puzzle_solve_all(["4/3*9=12"-
+                      "rbrrrgbb"],
+                     "5*9+3=48",
+                     Ps).
+
+test(p33, Ps = ["192/64=3"]) :- % This one was done by human
+    puzzle_solve_all(["7+8-2=13"-"bbbbrrrg",
+                      "6*6/12=3"-"rbbgrrgg",
+                      "129/43=3"-"grrgrbgg",
+                      "162/54=3"-"grggbggg"],
+                     "192/64=3",
+                     Ps).
+test(p33, Ps = ["192/64=3"]) :- % This one used program's recommendations
+    puzzle_solve_all(["7+8-2=13"-
+                      "bbbbrrrg",
+                      "162/54=3"-
+                      "grggbggg"],
+                     "192/64=3",
+                     Ps).
+
+test(p34, Ps = ["372/93=4"]) :-
+    puzzle_solve_all(["6*5/3=10"-
+                      "bbbgrrbb",
+                      "378/42=9"-
+                      "ggbgrrgr"],
+                     Ps).
+
+test(p34, Ps = ["2*53=106"]) :-
+    nerdle:puzzle_solve_all(["3*8/1=24"-
+                             "rgbbrrrb",
+                             "2*53=106"-
+                             "gggggggg"],
+                            Ps).
 
 :- end_tests(nerdle).

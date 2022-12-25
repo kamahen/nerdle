@@ -46,6 +46,7 @@ An example:
 
 % :- set_prolog_flag(autoload, false).
 :- use_module(expr, [expr//1, eval/2, puzzle/2]).
+:- use_module(gen_all_puzzles, [trivial_term/1]).
 :- use_module(library(apply), [include/3, exclude/3,
                                foldl/4, foldl/5, foldl/6]).
 :- use_module(library(apply_macros)). % defines: [maplist/2, maplist/3, maplist/4, phrase/2]).
@@ -214,6 +215,7 @@ puzzle_fill(Puzzle) :-
     append(Left, ['='|Right], Puzzle),
     puzzle(Left, Right),
     phrase(expr(LeftTerm), Left),
+    \+ trivial_term(LeftTerm),
     eval(LeftTerm, LeftValue),
     integer(LeftValue),
     LeftValue >= 0,
@@ -231,8 +233,6 @@ solution_score(Puzzle, Guesses, SolutionScore) :-
     sort(GuessesCombined0, GuessesCombined),
     foldl(score_label, Puzzle, GuessesCombined-0, _-SolutionScore).
 
-% TODO: incorporate trivial_puzzle/1 from gen_all_puzzles.pl
-% DO NOT SUBMIT
 score_label(Label, GuessesCombined-SolutionScore, GS), memberchk(Label, GuessesCombined) =>
     GS = GuessesCombined-SolutionScore.
 score_label(Label, GuessesCombined-SolutionScore0, GS) =>

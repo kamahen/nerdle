@@ -1,8 +1,11 @@
 % -*- mode: Prolog; coding: utf-8 -*-
 
-:- module(gen_all_puzzles, [write_all_puzzles/2]).
+:- module(gen_all_puzzles, [write_all_puzzles/2,
+                            trivial_puzzle/1,
+                            trivial_term/1]).
 
 :- use_module(nerdle, [puzzle_fill/1]).
+:- use_module(expr, [expr//1]).
 
 puzzle_fill_string(S) :-
     length(P, 8),
@@ -10,28 +13,24 @@ puzzle_fill_string(S) :-
     \+ trivial_puzzle(P),
     string_chars(S, P).
 
-% TODO: this should instead parse P and then look for
-%       _*0, 0*_, 0/_ and/or 0*_*_, _*0*_, etc.
 trivial_puzzle(P) :-
     append(Left, ['='|_], P),
-    ( P = ['0','*'|_]
-    ; P = ['0','/'|_]
-    ; append(_, ['*','0','*'|_], Left)
-    ; append(_, ['/','0','*'|_], Left)
-    ; append(_, ['+','0','*'|_], Left)
-    ; append(_, ['-','0','*'|_], Left)
-    ; append(_, ['*','0','*'|_], Left)
-    ; append(_, ['*','0','/'|_], Left)
-    ; append(_, ['/','0','/'|_], Left)
-    ; append(_, ['+','0','/'|_], Left)
-    ; append(_, ['-','0','/'|_], Left)
-    ; append(_, ['*','0','/'|_], Left)
-    ; append(_, ['*','0','+'|_], Left)
-    ; append(_, ['*','0','-'|_], Left)
-    ; append(_, ['*','0','*'|_], Left)
-    ; append(_, ['*','0','/'|_], Left)
-    ; append(_, ['*','0'], Left)
-    ).
+    phrase(expr(LeftTerm), Left),
+    trivial_term(LeftTerm),
+    !.
+
+trivial_term(X+Y) :- trivial_term_plus_minus(X, Y).
+trivial_term(X-Y) :- trivial_term_plus_minus(X, Y).
+trivial_term(X*Y) :- trivial_term_times_divide(X, Y).
+trivial_term(X/Y) :- trivial_term_times_divide(X, Y).
+
+trivial_term_plus_minus(X, _Y) :- trivial_term(X), !.
+trivial_term_plus_minus(_X, Y) :- trivial_term(Y), !.
+
+trivial_term_times_divide(0, _) :- !.
+trivial_term_times_divide(_, 0) :- !. % Also catches divide-by-zero
+trivial_term_times_divide(X, _Y) :- trivial_term(X), !.
+trivial_term_times_divide(_X, Y) :- trivial_term(Y), !.
 
 % write_all_puzzles('all_puzzles.pl', all_puzzles)).
 write_all_puzzles(File, Module) :-

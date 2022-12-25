@@ -96,10 +96,14 @@ flip_negative_v_k(V-K, K-V2) :-
 
 %! expr(?Expr:term)//
 % Parse an expression (list of chars) to produce a term. Fails if it
-% doesn't get isn't a valid expression.  expr//1 can be used either to
-% parse a list of chars to produce a term, or it can process a term to
-% produce a list of chars; and if the list of chars is bounded in
-% size, it can generate all combinations of terms and lists of chars.
+% isn't a valid expression.  expr//1 can be used either to parse a
+% list of chars to produce a term, or it can process a term to produce
+% a list of chars; and if the list of chars is bounded in size, it can
+% generate all combinations of terms and lists of chars.
+% An expression is made up of '+','-','*','/', digits; '=' is handled
+% elsewhere.
+% To use stand-alone:
+%         `string_chars("1+3",C), expr:phrase(expr(T), C).`
 expr(Expr) --> term(Term), expr_(Term, Expr).
 
 expr_(Left, Expr) -->
