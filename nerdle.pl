@@ -45,7 +45,7 @@ An example:
 ****************************************************/
 
 % :- set_prolog_flag(autoload, false).
-:- use_module(expr, [expr//1, eval/2, puzzle/2]).
+:- use_module(expr, [expr//1, eval/2, puzzle/2, digit0/1]).
 :- use_module(gen_all_puzzles, [trivial_term/1]).
 :- use_module(library(apply), [include/3, exclude/3,
                                foldl/4, foldl/5, foldl/6]).
@@ -233,10 +233,25 @@ solution_score(Puzzle, Guesses, SolutionScore) :-
     sort(GuessesCombined0, GuessesCombined),
     foldl(score_label, Puzzle, GuessesCombined-0, _-SolutionScore).
 
-score_label(Label, GuessesCombined-SolutionScore, GS), memberchk(Label, GuessesCombined) =>
-    GS = GuessesCombined-SolutionScore.
+% Increase score for guessed labels that haven't already been seen
+% Slightly prefer more operators
+
+score_label(Label, GuessesCombined-SolutionScore0, GS), memberchk(Label, GuessesCombined) =>
+    score_label_seen(Label, GuessesCombined, SolutionScore0, GS).
 score_label(Label, GuessesCombined-SolutionScore0, GS) =>
+    score_label_new(Label, GuessesCombined, SolutionScore0, GS).
+
+score_label_seen(Label, GuessesCombined, SolutionScore, GS), digit0(Label) =>
+    GS = GuessesCombined-SolutionScore.
+score_label_seen(Label, GuessesCombined, SolutionScore0, GS) =>
+    SolutionScore is SolutionScore0 - 10,
+    GS = [Label|GuessesCombined]-SolutionScore.
+
+score_label_new(Label, GuessesCombined, SolutionScore0, GS), digit0(Label) =>
     SolutionScore is SolutionScore0 - 100,
+    GS = [Label|GuessesCombined]-SolutionScore.
+score_label_new(Label, GuessesCombined, SolutionScore0, GS) =>
+    SolutionScore is SolutionScore0 - 120,
     GS = [Label|GuessesCombined]-SolutionScore.
 
 %! puzzle_guess_result(+Puzzle, +Guess, -Result) :-

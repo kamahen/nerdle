@@ -5,6 +5,7 @@
            random_expr_string/1,
            random_expr_chars/8,
            random_expr_chars/1,
+           digit0/1,
            num//1,
            eval/2,
            puzzle/2
@@ -161,3 +162,6 @@ digit1('6', 6).
 digit1('7', 7).
 digit1('8', 8).
 digit1('9', 9).
+
+digit0(D) :-
+    digit0(D, _).
