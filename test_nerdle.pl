@@ -645,4 +645,24 @@ test(p55, Ps = ["2+7*8=58"]) :-
                      "2+7*8=58",
                      Ps).
 
+test(p56, Ps = ["7-14+8=1"]) :-
+    puzzle_solve_all(["3*8/1=24"-bbrbrrbr,
+                      "1+56/7=9"-rrbbbrgb],
+                     "7-14+8=1",
+                     Ps).
+
+test(p57, Ps = ["49-8*6=1"]) :-
+    puzzle_solve_all(["3*8-4=20"-brrrrrbb, "1+56/7=9"-rbbrbbgr],
+                     "49-8*6=1",
+                     Ps).
+test(p57, Ps = ["49-8*6=1"]) :-
+    puzzle_solve_all(["3*8-4=20"-brrrrrbb, "49-6*8=1"-gggrgrgg],
+                     "49-8*6=1",
+                     Ps).
+
+test(p8, Ps = ["55/5-3=8", "55/5-8=3"]) :-
+    puzzle_solve_all(["12/3+0=4"-bbgrbbgb, "51-6*7=9"-gbrbbbgb],
+                     "55/5-3=8",
+                     Ps).
+
 :- end_tests(nerdle).
