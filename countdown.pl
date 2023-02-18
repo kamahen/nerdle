@@ -7,8 +7,6 @@
 :- module(countdown,
           [solve/3]).
 
-:- set_prolog_flag(prefer_rationals, true).
-
 solve(Numbers, Target, ExprClean) :-
     subseq(Numbers, Numbers2),
     perm(Numbers2, NumbersPermuted),
@@ -46,8 +44,9 @@ clean(num(X), X).
 % Ns is a list of numbers; Expr is an expression
 % made by interpolating all the possible operators.
 % For example, expr([1,2,3], num(1)+num(2)*num(3)).
-expr([N], Expr) => Expr = num(N).
-expr(Ns, Expr) =>
+
+expr([N], Expr) :- !, Expr = num(N).
+expr(Ns, Expr) :-
     append(Left, Right, Ns),
     expr_(Left, Right, Expr).
 
