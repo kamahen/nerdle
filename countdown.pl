@@ -9,41 +9,43 @@
 
 :- set_prolog_flag(prefer_rationals, true).
 
-solve(Numbers, Target, Expr) :-
+solve(Numbers, Target, ExprClean) :-
     subseq(Numbers, Numbers2),
-    permutation(Numbers2, NumbersPermuted),
-    expr(NumbersPermuted, Expr0),
-    eval(Expr0, Target, Expr).
+    perm(Numbers2, NumbersPermuted),
+    expr(NumbersPermuted, Expr),
+    eval(Expr, Target),
+    clean(Expr, ExprClean).
 
-%! eval(+Expr, -Result, -Clean).
-% Expr is evaluated into Result and a "clean" version of Expr is
-% put into Clean (stripping num(...)).
-% Trivial results, such as X+0 or 1*X are removed, as are duplicates
+%! eval(+Expr, -Result)
+% Expr is evaluated into Result.
+% Trivial results, such as X+0 or 1*X are removed, as are commutative duplicates
 % by commutivity (e.g., 2+3 and 3+2).
-eval(X+Y, Result, Clean) => eval(X, X2, Xc), eval(Y, Y2, Yc), Result is X2+Y2,
-                                                               Clean = Xc+Yc,
-                                                               Result \= X2,
-                                                               Result \= Y2,
-                                                               X2 =< Y2.
-eval(X-Y, Result, Clean) => eval(X, X2, Xc), eval(Y, Y2, Yc), Result is X2-Y2,
-                                                                Clean = Xc-Yc,
-                                                              Result >= 0,
-                                                              Result \= X2.
-eval(X*Y, Result, Clean) => eval(X, X2, Xc), eval(Y, Y2, Yc), Result is X2*Y2,
-                                                                Clean = Xc*Yc,
-                                                              Result \= X2,
-                                                              Result \= Y2,
-                                                              X2 =< Y2.
-eval(X/Y, Result, Clean) => eval(X, X2, Xc), eval(Y, Y2, Yc), Y2 \= 0,
-                                                               Result is X2/Y2,
-                                                                 Clean = Xc/Yc,
-                                                               Result \= X2,
-                                                               integer(Result).
-eval(num(X), Result, Clean), integer(X), X >= 0 => Result = X,
-                                                   Clean = X.
-eval(num(_), _, _) => fail.
+% Commented out are some redundant tests
+eval(X+Y, Result) :- eval(X, X2), X2 =\= 0,
+                     eval(Y, Y2), X2 =< Y2, /* Y2 =\= 0, */
+                     Result is X2+Y2.
+eval(X*Y, Result) :- eval(X, X2), X2 > 1,
+                     eval(Y, Y2), X2 =< Y2, /* Y2 =\= 0, Y2 =\= 1, */
+                     Result is X2*Y2.
+eval(X-Y, Result) :- eval(Y, Y2), Y2 =\= 0,  % Y is evaluated before X
+                     eval(X, X2), X2 > Y2,
+                     Result is X2-Y2.
+eval(X/Y, Result) :- eval(X, X2), X2 > 1,
+                     eval(Y, Y2), Y2 > 1,
+                     Result is X2/Y2,
+                     integer(Result).
+eval(num(X), X).  % integer(X), X >= 0
 
-expr([], _) => fail.
+clean(X+Y, Xc+Yc) :- clean(X, Xc), clean(Y, Yc).
+clean(X*Y, Xc*Yc) :- clean(X, Xc), clean(Y, Yc).
+clean(X-Y, Xc-Yc) :- clean(X, Xc), clean(Y, Yc).
+clean(X/Y, Xc/Yc) :- clean(X, Xc), clean(Y, Yc).
+clean(num(X), X).
+
+%! expr(+Ns, -Expr).
+% Ns is a list of numbers; Expr is an expression
+% made by interpolating all the possible operators.
+% For example, expr([1,2,3], num(1)+num(2)*num(3)).
 expr([N], Expr) => Expr = num(N).
 expr(Ns, Expr) =>
     append(Left, Right, Ns),
@@ -60,6 +62,12 @@ op_primitive(Left, Right, Left+Right).     % Left @=< Right,
 op_primitive(Left, Right, Left*Right).     % Left @=< Right,
 op_primitive(Left, Right, Left-Right).
 op_primitive(Left, Right, Left/Right).
+
+% Permutation - taken from library(lists).
+perm([], []).
+perm(List, [First|Perm]) :-
+    select(First, List, Rest),
+    perm(Rest, Perm).
 
 subseq(List, Subseq) :-
     Subseq = [_|_],
@@ -79,4 +87,3 @@ subseq_([_|Tail], SubSequence) :-
 %     subseq_(Tail, SubTail).
 % subseq_(_, Tail, SubSequence) :-
 %     subseq_(Tail, SubSequence).
-

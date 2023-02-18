@@ -33,5 +33,14 @@ p(Stream) :-
 The resulting file and the output of `countdown.pl` can be
 compared by using the `sort` and `diff` utilities.
 
+When run with `[1,3,5,10,25,50]` and `999`, got the following timings:
+* 0.3 seconds with compiled Haskell (`ghc`)
+* 4.2 seconds with interpreted Haskell (`ghci`)
+* 43.4 seconds with SWI-Prolog (`swipl -O`)
+* 52.6 seconds with SWI-Prolog when using the `num(_)` wrapper and `:-` for `eval/2`
+  even as high as 62 seconds, with slight variations in the code
+  - using =\= instead of \== did speed-up from 56 seconds to 42 seconds
+  - removing a few redundant tests got 40.7 seconds
+
 
 
