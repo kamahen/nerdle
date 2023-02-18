@@ -17,7 +17,7 @@ test_nerdle :-
     run_tests([ nerdle
 	      ]).
 
-:- set_test_options([concurrent(true)]).
+:- set_test_options([jobs(20)]).
 
 :- begin_tests(eval).
 
@@ -807,6 +807,30 @@ test(p74, Ps = ["9+3*4=21", "9+4*3=21"]) :-
     puzzle_solve_all(["12/3+0=4"-rrbrrbrr,
                       "8*9-5=67"-brrbbgbb],
                      "9+3*4=21",
+                     Ps).
+
+test(p75, Ps = ["48*9=432", "49*8=392", "94*3=282", "98*3=294", "98*4=392"]) :-
+    puzzle_solve_all(["3*8-4=20"-rrrbrrrb,
+                      "1+56/7=9"-bbbbbbrr],
+                     "98*3=294",
+                     Ps).
+
+test(p76, Ps = ["79-34=45", "79-44=35"]) :-
+    puzzle_solve_all(["3*8-4=20"-rbbrggbb,
+                      "6/1+9=15"-bbbbrgbg],
+                     "79-44=35",
+                     Ps).
+
+test(p77, Ps = ["3*71=213", "3*77=231"]) :-
+    puzzle_solve_all(["3*8-4=20"-ggbbbrrb,
+                      "1+56/7=9"-rbbbbrrb],
+                     "3*71=213",
+                     Ps).
+
+test(p78, Ps = ["10-6+2=6", "12-6+0=6"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbbrbrrr,
+                      "1+56/7=9"-grbgbbgb],
+                     "10-6+2=6",
                      Ps).
 
 :- end_tests(nerdle7).
