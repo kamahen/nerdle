@@ -33,14 +33,11 @@ clean(_). % number
 %! expr(+Ns, -Expr).
 % Ns is a list of numbers; Expr is an expression
 % made by interpolating all the possible operators.
-% For example, expr([1,2,3], num(1)+num(2)*num(3)).
+% For example, expr([1,2,3], 1+2*3).
 
 expr([N], Expr) :- !, Expr = N. % was: Expr=num(N)
 expr(Ns, Expr) :-
     append(Left, Right, Ns),
-    expr_(Left, Right, Expr).
-
-expr_(Left, Right, Expr) :-
     Left = [_|_],
     Right = [_|_],
     expr(Left, LeftExpr),
