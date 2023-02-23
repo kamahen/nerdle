@@ -16,6 +16,8 @@
 :- module(countdown,
           [solve/3]).
 
+:- use_module(library(lists), [append/3, select/3]).
+
 solve(Numbers, Target, Expr) :-
     subseq(Numbers, Numbers2),
     perm(Numbers2, NumbersPermuted),
