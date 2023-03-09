@@ -17,7 +17,7 @@ test_nerdle :-
     run_tests([ nerdle
 	      ]).
 
-:- set_test_options([jobs(20)]).
+:- set_test_options([jobs(10)]).
 
 :- begin_tests(eval).
 
@@ -839,6 +839,10 @@ test(p79, Ps = ["340/68=5","360/45=8","430/86=5"]) :-
                      "340/68=5",
                      Ps).
 
+:- end_tests(nerdle7).
+
+:- begin_tests(nerdle8).
+
 test(p80, Ps = ["306/9=34"]) :-
     puzzle_solve_all(["3*8-4=20"-gbbbrgbr,
                       "6/1+9=15"-rrbbggbb],
@@ -877,4 +881,88 @@ test(p84, Ps = ["68-20=48","68-28=40","68-40=28","68-48=20"]) :-
                      "68-28=40",
                      Ps).
 
-:- end_tests(nerdle7).
+test(p85, Ps = ["9+7/7=10"]) :-
+    puzzle_solve_all(["3*8-4=20"-
+                       bbbbbgbg,
+                      "6/1+9=15"-
+                       brbrrggb],
+                     "9+7/7=10",
+                     Ps).
+
+test(p86, Ps = ["5-3+9=11"]) :-
+    puzzle_solve_all(["3*8-4=20"-rbbrbgbb,
+                      "6/1+9=15"-bbrggggr],
+                     "5-3+9=11",
+                     Ps).
+
+test(p89, Ps = ["12-9+6=9","16+2-9=9","16-9+2=9"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbbrbrrb,
+                      "1+56/7=9"-grbrbbgg],
+                     "16-9+2=9",
+                     Ps).
+
+:- end_tests(nerdle8).
+
+:- begin_tests(nerdle9).
+
+test(90, Ps = ["5+16/4=9"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbbbrrbb,
+                      "1+56/7=9"-rgrggbgg],
+                     "5+16/4=9",
+                     Ps).
+
+p(91, Ps = ["10+48=58","18+40=58","40+18=58","48+10=58"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbrbrgbr,
+                      "6/1+9=15"-bbrrbgbr],
+                     "40+18=58",
+                     Ps).
+
+p(92, Ps = ["11-1-4=6","11-1-6=4","11-4-1=6","11-4-6=1","14-4-4=6","14-4-6=4","16-4-6=6"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbbrrrbb,
+                      "1+56/7=9"-gbbrbbgb],
+                     "11-1-4=6",
+                     Ps).
+
+p(93, Ps = ["49+48=97"]) :-
+    nerdle:puzzle_solve_all(["3*8-4=20"-bbrbrgbb,
+                             "6/1+9=15"-bbbrrgbb],
+                            "49+48=97",
+                            Ps).
+
+p(94, Ps = ["8*6-39=9","8*9-63=9"]) :-
+    puzzle_solve_all(["3*8-4=20"-rgrgbrbb,
+                      "1+56/7=9"-bbbrbbgg],
+                     "8*9-63=9",
+                     Ps).
+
+p(95, Ps = ["7-12/6=5"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbbrbrrb,
+                      "1+56/7=9"-rbrrgrgb],
+                     "7-12/6=5",
+                     Ps).
+
+p(96, Ps = ["2*5*7=70","2*7*5=70","5*2*7=70","5*7*2=70","7*2*5=70","7*5*2=70","2*5*5=50","5*2*5=50","5*5*2=50"]) :-
+    puzzle_solve_all(["3*8-4=20"-bgbbbgrg,
+                      "6/1+9=15"-bbbbbgbr],
+                     "2*5*7=70",
+                     Ps).
+
+p(97, Ps = ["89-19=70","99-19=80"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbrrbgbg,
+                      "6/1+9=15"-bbrbggbb],
+                     "99-19=80",
+                     Ps).
+
+p(98, Ps = ["44-6*6=8"]) :-
+    puzzle_solve_all(["3*8-4=20"-brrrrrbb,
+                      "1+56/7=9"-bbbgbbgb],
+                     "44-6*6=8",
+                     Ps).
+
+p(99, Ps = ["13-1-7=5","13-5-7=1","15-3-7=5","15-5-7=3"]) :-
+    puzzle_solve_all(["3*8-4=20"-rbbrbrbb,
+                      "1+56/7=9"-gbrbbggb],
+                     "13-5-7=1",
+                     Ps).
+
+:- end_tests(nerdle9).
