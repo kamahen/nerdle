@@ -3,12 +3,14 @@
 :- module(wordle, [assert_words/0,
                    word/5, word/1, word_chars/1,
                    match_word/4,
-                   match_words/5
+                   match_words/5,
+                   match_words_and_score/4
                   ]).
 
 :- encoding(utf8).
 
 :- dynamic word/5. % created with assert_words/0.
+:- dynamic number_words/1.  % created with assert_words/0.
 :- initialization(assert_words, after_load).
 
 
@@ -19,9 +21,29 @@ word(W) :-
 word_chars([W1,W2,W3,W4,W5]) :-
     word(W1,W2,W3,W4,W5).
 
-match_words(Pattern, In, NotIn, WordList, WordListLen) :-
+match_words_and_score(Pattern, In, NotIn, WordScoreList) :-
     setof(W, match_word(Pattern, In, NotIn, W), WordList),
-    length(WordList, WordListLen).
+    maplist(score_word(NotIn), WordList, WordScoreList0),
+    keysort(WordScoreList0, WordScoreList2),
+    pairs_values(WordScoreList2, WordScoreList).
+
+score_word(NotIn, Word, ScoreNegative-Word) :-
+    string_chars(Word, WordChars0),
+    sort(WordChars0, WordChars), % dedup
+    maplist(letter_probability(NotIn), WordChars, Probabilities),
+    sumlist(Probabilities, Score),
+    ScoreNegative is -Score.
+
+letter_probability(NotIn, Letter, Probability) :-
+    (   memberchk(Letter, NotIn)
+    ->  Probability = 0.0
+    ;   letter_probability(Letter, Probability)
+    ).
+
+match_words(Pattern, In, NotIn, WordList, NegativeWordListLen) :-
+    setof(W, match_word(Pattern, In, NotIn, W), WordList),
+    length(WordList, WordListLen),
+    NegativeWordListLen is -WordListLen.
 
 %! match_word(?Exact:string, +In:list(char), +NotIn:list(char), -Word:string) is nondet.
 %
@@ -43,16 +65,27 @@ match_words(Pattern, In, NotIn, WordList, WordListLen) :-
 
 match_word(Pattern, In, NotIn, Word) :-
     string_chars(Pattern, PatternChars),
-    word_chars(WordChars),
     foldl(pattern_char, PatternChars, WordChars, [], NonExactChars),
+    word_chars(WordChars),
     foldl(select, In, NonExactChars, RestChars),
     maplist(not_in(RestChars), NotIn),
     string_chars(Word, WordChars).
 
-not_in(Word, NotIn) :- \+ member(NotIn, Word).
+not_in(WordChars, NotIn) :- \+ member(NotIn, WordChars).
 
 pattern_char('.', C,  V0, V) => V = [C|V0].
 pattern_char(C,   C2, V0, V) => C = C2, V = V0.
+
+letter_probability(Letter, Probability) :-
+    setof(W, word_contains_letter(Letter, W), Ws),
+    length(Ws, NumberWords),
+    number_words(N),
+    Probability is float(NumberWords) / float(N).
+
+word_contains_letter(Letter, Word) :-
+    word_chars(WordChars),
+    memberchk(Letter, WordChars),
+    string_chars(Word, WordChars).
 
 assert_words :-
     assert_words('/home/peter/src/nerdle/wordle-small.txt').
@@ -61,7 +94,11 @@ assert_words(File) :-
     retractall(word(_,_,_,_,_)),
     setup_call_cleanup(open(File, read, In),
                        assert_words_(In),
-                       close(In)).
+                       close(In)),
+    setof(W, word(W), Ws),
+    retractall(number_words(_)),
+    length(Ws, L),
+    assertz(number_words(L)).
 
 assert_words_(In) :-
     repeat,
