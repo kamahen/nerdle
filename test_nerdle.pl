@@ -1462,3 +1462,118 @@ test(169, Ps == ["14-3-4=7","14-4-3=7","14-7-3=4","14-7-4=3"]) :-
                      Ps).
 
 :- end_tests(nerdle16).
+
+:- begin_tests(nerdle17).
+
+test(170, Ps == ["7*9-6=57","7*9-7=56","9*7-6=57","9*7-7=56","9*9-5=76"]) :-
+    puzzle_solve_all(["3*8-4=20"-bgbgbgbb,"6/1+9=15"-rbbbrgbr],
+                     "9*7-7=56",
+                     Ps).
+
+test(171, Ps == ["4+5+7=16","4+7+5=16","5+4+7=16","7+4+5=16"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbbbrgbb,
+                      "6/1+9=15"-rbbgbggr],
+                     "4+5+7=16",
+                     Ps).
+
+test(172, Ps == ["0+14-6=8","0+14-8=6","4+10-6=8","4+10-8=6"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbrrrrbr,
+                      "1+56/7=9"-rgbrbbgb],
+                     "4+10-8=6",
+                     Ps).
+
+test(173, Ps == ["1+2+7=10","1+7+2=10","2+7+1=10","7+2+1=10"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbbbbgrg,
+                      "6/1+9=15"-bbrgbggb],
+                     "1+2+7=10",
+                     Ps).
+
+test(174, Ps == ["72-16=56","76-25=51","77-15=62","77-21=56","77-26=51"]) :-
+    puzzle_solve_all(["3*8-4=20"-bbbrbgrb,
+                      "6/1+9=15"-rbrbbgbr],
+                     "76-25=51",
+                     Ps).
+
+test(175, Ps == ["3*4+9=21","3*9+1=28","3*6+3=21","9*2+3=21"]) :-
+    puzzle_solve_all(["2+3*5=17"-rrrrbgrb],
+                     "3*4+9=21",
+                     Ps).
+
+test(177, Ps == ["24+11=35","25+10=35","25+11=36","22+13=35","23+12=35"]) :-
+    puzzle_solve_all(["2+3*5=17"-grrbrgrb,
+                      "21+38=59"-grgrbgrb],
+                     "25+10=35",
+                     Ps).
+test(177, Ps == ["25+10=35","22+13=35","23+12=35"]) :-
+    puzzle_solve_all(["2+3*5=17"-grrbrgrb,
+                      "21+38=59"-grgrbgrb,
+                      "24+11=35"-gbggbggg],
+                     "25+10=35",
+                     Ps).
+
+test(178, Ps == ["228/57=4","270/54=5","285/57=5","275/55=5"]) :-
+    puzzle_solve_all(["2+3*5=17"-gbbbgrbr],
+                     "275/55=5",
+                     Ps).
+
+test(179, Ps == ["6*2+9=21","9*9+1=82"]) :-
+    puzzle_solve_all(["2+3*5=17"-rrbrbgrb],
+                     "9*9+1=82",
+                     Ps).
+
+:- end_tests(nerdle17).
+
+:- begin_tests(nerdle18).
+
+test(180, Ps == ["4+8-11=1","8+4-11=1"]) :-
+    puzzle_solve_all(["2+3*5=17"-bgbbbrrb,
+                      "0+14-6=8"-bgrrrbgr],
+                     "4+8-11=1",
+                     Ps).
+
+test(181, Ps == ["0+13-6=7","3+10-6=7","3+16/4=7","0+10-3=7","1+18/3=7","3+13-9=7","1+13-7=7","3+11-7=7"]) :-
+    puzzle_solve_all(["2+3*5=17"-bgrbbrrg],
+                     "3+11-7=7",
+                     Ps).
+
+% The following test resulted from a typo, which resulted in
+% inconsistent constraints - constrain_from_guess/3 fails and, because
+% it's marked as "det", a determinism_error is thrown, which is rather
+% confusing.
+
+% 2+3*5=17
+% bgbbrggb
+
+% 5+9-0=14
+% rgrbbggb
+
+% 9+6/1=15
+% rgbbrggg
+
+% 1+5+9=15
+% gggggggg
+
+% puzzle_solve_all(["2+3*5=17"-bgbbrggb, "5+9-0=14"-rgrbbggb, "9+6/1=15"-rgbbrggg], Z).
+
+test(182, [blocked(inconsistent_constraints), Ps == ["9+6/1=15","6+5+8=19","8+5+6=19","9+0+6=15","9+6+0=15","9+5+1=15"]]) :-
+    puzzle_solve_all(["2+3*5=17"-bgbbrggb, "5+9-9=14"-rgrbbggb],
+                     "1+5+9=15",
+                     Ps).
+test(182, Ps == ["9+6/1=15","6+5+8=19","8+5+6=19","1+5+9=15","9+5+1=15"]) :-
+    puzzle_solve_all(["2+3*5=17"-bgbbrggb,
+                      "5+9-0=14"-rgrbbggb],
+                     "1+5+9=15",
+                     Ps).
+
+test(183, Ps == ["1+6*7=43","1+7*6=43","1+8*9=73","1+9*8=73","7+4*6=31","7+6*4=31","3+4*7=31","3+7*4=31","7+8*3=31"]) :-
+    puzzle_solve_all(["2+3*5=17"-bgrgbgrr],
+                     "7+4*6=31",
+                     Ps).
+
+test(184, Ps == ["392/49=8","332/83=4"]) :-
+    puzzle_solve_all(["2+3*5=17"-rbrbbrbb,
+                      "3-24/8=0"-gbgrrrgb],
+                     "392/49=8",
+                     Ps).
+
+:- end_tests(nerdle18).

@@ -124,20 +124,25 @@ process_inputs(GuessResults, Guesses, Results) :-
 % a result (e.g.,      [ b , b , b , r , r , g , g , r ])),
 % add constraints to Puzzle (an 8-element list).
 constrain(Puzzle, Guess, Result) :-
-    length(Puzzle, 8),
+    ensure_puzzle_length(Puzzle),
     maplist(normalize_result, Result, ResultNormalized),
     maplist(constrain_from_guess, ResultNormalized, Guess, Puzzle).
 
+ensure_puzzle_length(Puzzle) :-
+    length(Puzzle, 8).
+
 :- det(constrain_from_guess/3).
+% This can fail if the constraints are inconsistent. An example of
+% that is the blocked test 182.
 %! constrain_from_guess(+Result:atom, +Guess:{g,b,r}, PuzzleItem) is det.
 % For a single item in a guess (e.g., Result='7', Guess=b), and the matching
 % PuzzleItem from Puzzle, add constraints.
 % Add constraints for a single result (緑,黒,紅), Guess{digit,operator,=}, puzzle solution.
-constrain_from_guess(緑, Guess, PuzzleItem) :- % Guess is correct at this location
+constrain_from_guess(緑, Guess, PuzzleItem) => % Guess is correct at this location
     PuzzleItem = Guess.
-constrain_from_guess(紅, Guess, PuzzleItem) :- % Guess is in the answer, but elsewhere
+constrain_from_guess(紅, Guess, PuzzleItem) => % Guess is in the answer, but elsewhere
     dif(PuzzleItem, Guess).
-constrain_from_guess(黒, Guess, PuzzleItem) :- % Guess is not here
+constrain_from_guess(黒, Guess, PuzzleItem) => % Guess is not here
     dif(PuzzleItem, Guess).
 
 %! constrain_counts(+Puzzle:list(?), +Guess:list(atom), +Result:list(atom)) is det.
