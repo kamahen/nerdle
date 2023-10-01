@@ -15,6 +15,8 @@
 
 :- encoding(utf8).
 
+:- set_prolog_flag(optimisation, true).
+
 :- use_module(library(random), [random_between/3]).
 :- use_module(library(apply_macros)).
 :- use_module(all_puzzles_facts, [a_puzzle/2, a_puzzle/9,

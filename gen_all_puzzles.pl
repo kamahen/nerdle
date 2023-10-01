@@ -4,6 +4,8 @@
                             trivial_puzzle/1,
                             trivial_term/1]).
 
+:- set_prolog_flag(optimisation, true).
+
 :- use_module(nerdle, [puzzle_fill/1]).
 :- use_module(expr, [expr//1]).
 

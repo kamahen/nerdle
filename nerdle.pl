@@ -45,6 +45,9 @@ An example:
 ****************************************************/
 
 % :- set_prolog_flag(autoload, false).
+
+:- set_prolog_flag(optimisation, true).
+
 :- use_module(expr, [expr//1, eval/2, puzzle/2, digit0/1]).
 :- use_module(gen_all_puzzles, [trivial_term/1]).
 :- use_module(library(apply), [include/3, exclude/3,
