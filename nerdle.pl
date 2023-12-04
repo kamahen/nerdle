@@ -9,6 +9,8 @@
 
 :- encoding(utf8).
 
+:- meta_predicate nerdle_assertion(0).
+
 /****************************************************
 
 A "helper" / solver for the Nerdle puzzle (http://nerdlegame.com).
@@ -48,7 +50,7 @@ An example:
 
 :- set_prolog_flag(optimisation, true).
 
-:- use_module(expr, [expr//1, eval/2, puzzle/2, digit0/1]).
+:- use_module(expr, [expr//1, eval/2, puzzle/2, a_puzzle/9, digit0/1]).
 :- use_module(gen_all_puzzles, [trivial_term/1]).
 :- use_module(library(apply), [include/3, exclude/3,
                                foldl/4, foldl/5, foldl/6]).
@@ -97,13 +99,21 @@ puzzle_solve_all(GuessResults, PuzzleStrs) :-
 %                "best" first).
 puzzle_solve(GuessResults, SolutionScore, PuzzleStr) :-
     process_inputs(GuessResults, Guesses, Results),
-    assertion(maplist(maplist(verify_result), Results)),
+    maplist(assertion_verify_guess, Guesses),
+    nerdle_assertion(maplist(maplist(verify_result), Results)),
     maplist(constrain(Puzzle), Guesses, Results),
     constrain_black(Puzzle, Guesses, Results),
     puzzle_fill(Puzzle),
     maplist(constrain_counts(Puzzle), Guesses, Results),
     solution_score(Puzzle, Guesses, SolutionScore),
     string_chars(PuzzleStr, Puzzle).
+
+assertion_verify_guess(Guess) :-
+    nerdle_assertion(verify_guess(Guess)).
+
+%! verify_guess(+Guess) is nondet.
+verify_guess([C1,C2,C3,C4,C5,C6,C7,C8]) :-
+    a_puzzle(_, C1,C2,C3,C4,C5,C6,C7,C8), !.
 
 %! verify_result(C:atom) is nondet.
 verify_result(黒).
@@ -167,7 +177,7 @@ constrain_counts(Puzzle, Guess, Result) :-
 % Otherwise (no black), we know the minimum number of this Label.
 constrain_count(Puzzle, Label-Results) :-
     count_label(Puzzle, Label, LabelCount),
-    assertion(Results \= []), % group_pairs_by_key/2 can't generate this
+    nerdle_assertion(Results \= []), % group_pairs_by_key/2 can't generate this
     constrain_count_(Results, LabelCount).
 
 %! constrain_count_(+Results, +LabelCount) is nondet.
@@ -262,7 +272,7 @@ score_label_new(Label, GuessesCombined, SolutionScore0, GS) =>
     SolutionScore is SolutionScore0 - 120,
     GS = [Label|GuessesCombined]-SolutionScore.
 
-%! puzzle_guess_result(+Puzzle, +Guess, -Result) :-
+%! puzzle_guess_result(+Puzzle, +Guess, -Result) is det.
 % Compute the result (緑/紅/黒 green/red/black) from a Puzzle and a Guess.
 puzzle_guess_result(Puzzle, Guess, Result) :-
     msort(Puzzle, PuzzleSorted),
@@ -337,3 +347,12 @@ normalize_result(紫,    紅).
 normalize_result(黄,    紅).
 normalize_result(r,     紅).
 normalize_result(red,   紅).
+
+%! nerdle_assertion(:Goal) is det.
+% The following is because optimisation can remove assertions.
+% It could also be defined with \+ \+ and could also catch exceptions.
+nerdle_assertion(Goal) :-
+    (   call(Goal)
+    ->  true
+    ;   throw(error(nerdle_assertion(fail, Goal), _))
+    ).

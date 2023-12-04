@@ -8,7 +8,9 @@
            digit0/1,
            num//1,
            eval/2,
-           puzzle/2
+           puzzle/2,
+           a_puzzle/9,
+           char_in_puzzle/1
           ]).
 
 % See README.md for an overview
@@ -52,8 +54,7 @@ eval(Expr, Result) :-
 eval_(X+Y, Result) => eval(X, X2), eval(Y, Y2), Result is X2+Y2.
 eval_(X-Y, Result) => eval(X, X2), eval(Y, Y2), Result is X2-Y2.
 eval_(X*Y, Result) => eval(X, X2), eval(Y, Y2), Result is X2*Y2.
-eval_(X/Y, Result) => eval(X, X2), eval(Y, Y2), \+ Y2 = 0,
-                                                Result is X2/Y2.
+eval_(X/Y, Result) => eval(X, X2), eval(Y, Y2), \+ Y2 = 0, Result is X2/Y2.
 eval_(X,   Result), rational(X) => Result = X.
 
 :- det(random_expr_chars/8).
