@@ -103,7 +103,7 @@ puzzle_solve(GuessResults, SolutionScore, PuzzleStr) :-
     nerdle_assertion(maplist(maplist(verify_result), Results)),
     maplist(constrain(Puzzle), Guesses, Results),
     constrain_black(Puzzle, Guesses, Results),
-    puzzle_fill(Puzzle),
+    puzzle_fill_from_lookup(Puzzle),
     maplist(constrain_counts(Puzzle), Guesses, Results),
     solution_score(Puzzle, Guesses, SolutionScore),
     string_chars(PuzzleStr, Puzzle).
@@ -224,11 +224,20 @@ only_black_guess(AllGuessResults, G) :-
 constrain_black_(Puzzle, G) :-
     maplist(dif(G), Puzzle).
 
+%! puzzle_fill_from_lookup(+Puzzle:list(?)) is nondet.
+% required counts for some labels.
+puzzle_fill_from_lookup(Puzzle) :-
+    Puzzle = [P1,P2,P3,P4,P5,P6,P7,P8],
+    a_puzzle(_Pnum, P1,P2,P3,P4,P5,P6,P7,P8).
+
 %! puzzle_fill(+Puzzle:list(?)) is nondet.
 % Fill in the uninstantiated parts of Puzzle.  If this predicate
 % succeeds, the Puzzle is ground and valid, according to the
 % constraints (but there may be more constraints to be added, for
-% required counts for some labels.
+
+% The following code was needed before module all_puzzle_facts was
+% created; it's faster to do a backtracking lookup than to compute
+% (see puzzle_fill_from_lookup/1).
 puzzle_fill(Puzzle) :-
     append(Left, ['='|Right], Puzzle),
     puzzle(Left, Right),

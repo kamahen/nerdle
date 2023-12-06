@@ -2059,6 +2059,13 @@ test(255, error(nerdle_assertion(fail,nerdle:verify_guess(['1','2',+,'3',-,'6',=
                      "1/2*12=6",
                      _Ps).
 
+test(256, Ps == ["98-71=27","98-77=21"]) :-
+    puzzle_solve_all(["12+3-6=9"-rrbbrbrr,
+                      "2*9-8=10"-rbrrrgrb,
+                      "47-19=28"-brgrrggr],
+                     "98-71=27",
+                     Ps).
+
 
 test(error, error(nerdle_assertion(fail,nerdle:verify_guess(['2',*,'3',+,'8',+,'1','4'])))) :-
     puzzle_solve_all(["2*3+8+14"-brbbbrbr], _).
