@@ -2,6 +2,7 @@
 
 :- module(expr,
           [expr//1,
+           expr_str/2,
            random_expr_string/1,
            random_expr_chars/8,
            random_expr_chars/1,
@@ -20,6 +21,8 @@
 :- set_prolog_flag(optimisation, true).
 
 :- use_module(library(random), [random_between/3]).
+% :- use_module(library(dcg/basics)).
+% :- use_module(library(dcg/high_order)).
 :- use_module(library(apply_macros)).
 :- use_module(all_puzzles_facts, [a_puzzle/2, a_puzzle/9,
                                   a_puzzle_i_min/1,a_puzzle_i_max/1]).
@@ -98,16 +101,20 @@ flip_negative_k_v(K-V, V2-K) :-
 flip_negative_v_k(V-K, K-V2) :-
     V2 is - V.
 
+expr_str(Str, Expr) :-
+    string_chars(Str, C),
+    phrase(expr(Expr), C).
+
 %! expr(?Expr:term)//
 % Parse an expression (list of chars) to produce a term. Fails if it
 % isn't a valid expression.  expr//1 can be used either to parse a
 % list of chars to produce a term, or it can process a term to produce
-% a list of chars; and if the list of chars is bounded in size, it can
-% generate all combinations of terms and lists of chars.
+% a list of chars if the list of chars is bounded in size; and it can
+% generate all combinations of terms and lists of chars, e.g.:
+%   L = [_,_,_,_,_], E = 1+2*3, phrase(expr(E), L), !.
+%
 % An expression is made up of '+','-','*','/', digits; '=' is handled
 % elsewhere.
-% To use stand-alone:
-%         `string_chars("1+3",C), expr:phrase(expr(T), C).`
 expr(Expr) --> term(Term), expr_(Term, Expr).
 
 expr_(Left, Expr) -->
@@ -135,8 +142,10 @@ times_divide(Left, Num, Left/Num) --> ['/'].
 %! num(?Num)//
 % Parse a number (fails if an invalid string). It is not allowed to
 % start with "0" nor with a "+" or "-" sign.
-num(Num) --> digit1(Accum), digits(Accum, Num).
-num(0) --> ['0'].
+num(Num) --> num_(Num_), { Num is eval(Num_) }.
+
+num_(Num) --> digit1(Accum), digits(Accum, Num).
+num_(0) --> ['0'].
 
 digits(Accum, Num) -->
     digit0(N),

@@ -51,7 +51,7 @@ An example:
 :- set_prolog_flag(optimisation, true).
 
 :- use_module(expr, [expr//1, eval/2, puzzle/2, a_puzzle/9, digit0/1]).
-:- use_module(gen_all_puzzles, [trivial_term/1]).
+:- use_module(gen_all_puzzles, [trivial_term/1, trivial_puzzle/1]).
 :- use_module(library(apply), [include/3, exclude/3,
                                foldl/4, foldl/5, foldl/6]).
 :- use_module(library(apply_macros)). % defines: [maplist/2, maplist/3, maplist/4, phrase/2]).
@@ -87,6 +87,15 @@ An example:
 % best answers first. ("Best" is defined in terms of "adds the most
 % information")
 puzzle_solve_all(GuessResults, PuzzleStrs) :-
+    % catch(
+    %       setof(SolutionScore-PuzzleStr,
+    %             puzzle_solve(GuessResults, SolutionScore, PuzzleStr),
+    %             Xs),
+    %       Err,
+    %       (   print_message(error, Err), backtrace(5),
+    %           print_message(error, Err),
+    %           fail )
+    %      ),
     setof(SolutionScore-PuzzleStr,
           puzzle_solve(GuessResults, SolutionScore, PuzzleStr),
           Xs),
@@ -98,6 +107,11 @@ puzzle_solve_all(GuessResults, PuzzleStrs) :-
 % SolutionScore: the more negative, the better (sorting will put the
 %                "best" first).
 puzzle_solve(GuessResults, SolutionScore, PuzzleStr) :-
+    puzzle_solve0(GuessResults, SolutionScore, PuzzleStr),
+    string_chars(PuzzleStr, PuzzleChars),
+    \+ trivial_puzzle(PuzzleChars).
+
+puzzle_solve0(GuessResults, SolutionScore, PuzzleStr) :-
     process_inputs(GuessResults, Guesses, Results),
     maplist(assertion_verify_guess, Guesses),
     nerdle_assertion(maplist(maplist(verify_result), Results)),
@@ -135,6 +149,7 @@ process_inputs(GuessResults, Guesses, Results) :-
 %! constrain(Puzzle:list, +Guess:list, +Result:list) is det.
 % Given a guess (e.g., ['7','+','8','-','5','=','1','0']) and
 % a result (e.g.,      [ b , b , b , r , r , g , g , r ])),
+%                        黒  黒  黒   紅  紅  緑   緑  紅
 % add constraints to Puzzle (an 8-element list).
 constrain(Puzzle, Guess, Result) :-
     ensure_puzzle_length(Puzzle),
@@ -365,3 +380,10 @@ nerdle_assertion(Goal) :-
     ->  true
     ;   throw(error(nerdle_assertion(fail, Goal), _))
     ).
+
+%%%%%%%%% messages
+
+:- multifile prolog:error_message//1.
+
+prolog:error_message(nerdle_assertion(fail, Goal)) -->
+    [ 'Nerdle: failed ~w'-[Goal] ].

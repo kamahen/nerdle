@@ -26,6 +26,8 @@ trivial_term(X-Y) :- trivial_term_plus_minus(X, Y).
 trivial_term(X*Y) :- trivial_term_times_divide(X, Y).
 trivial_term(X/Y) :- trivial_term_times_divide(X, Y).
 
+trivial_term_plus_minus(0, _).
+trivial_term_plus_minus(_, 0).
 trivial_term_plus_minus(X, _Y) :- trivial_term(X), !.
 trivial_term_plus_minus(_X, Y) :- trivial_term(Y), !.
 
@@ -35,6 +37,7 @@ trivial_term_times_divide(X, _Y) :- trivial_term(X), !.
 trivial_term_times_divide(_X, Y) :- trivial_term(Y), !.
 
 % write_all_puzzles('all_puzzles.pl', all_puzzles)).
+% TODO: add test for trivial_puzzle/1 (843 match)
 write_all_puzzles(File, Module) :-
     nb_setval(puzzle_i, -1),
     setup_call_cleanup(
