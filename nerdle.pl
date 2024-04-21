@@ -4,6 +4,7 @@
           [puzzle_solve/3,
            puzzle_solve_all/2,
            puzzle_fill/1,
+           puzzle_play/3,
            puzzle_guess_result/3 % For debugging.
           ]).
 
@@ -57,7 +58,7 @@ An example:
 :- use_module(library(apply_macros)). % defines: [maplist/2, maplist/3, maplist/4, phrase/2]).
 :- use_module(library(pairs), [pairs_keys_values/3, pairs_values/2,
                                group_pairs_by_key/2]).
-:- use_module(library(lists), [append/3, append/2, member/2, clumped/2]).
+:- use_module(library(lists), [append/3, append/2, member/2, clumped/2, nth0/3, select/3]).
 :- use_module(library(dif),   [dif/2]).
 :- use_module(library(debug), [assertion/1]).
 
@@ -329,6 +330,43 @@ guess_result_(_PuzzleItem, _GuessItem, Result, _Count, Counts, Counts2) =>
     Result = 黒,  % black
     Counts2 = Counts.
 
+% The following is a different implementation of puzzle_guess_result/3.
+puzzle_play(PuzzleStr, GuessStr, ResultAtom) :-
+    string_chars(PuzzleStr, Puzzle),
+    string_chars(GuessStr, Guess),
+    setof(I-V, nth0(I, Puzzle, V), PuzzlePairs),
+    setof(I-V, nth0(I, Guess, V), GuessPairs),
+    play(PuzzlePairs, GuessPairs, Result),
+    atom_chars(ResultAtom, Result).
+
+play(Puzzle, Guess, Result) :-
+    foldl(play_exact, Puzzle, Guess, []-[]-Puzzle, Same-Diff-Puzzle2),
+    foldl(play_partial, Diff, []-Puzzle2, Diff2-_),
+    maplist(play_color(g), Same, Same2),
+    append(Same2, Diff2, Result0),
+    keysort(Result0, Result1),
+    pairs_values(Result1, Result).
+
+play_color(Color, I-_, I-Color).
+
+play_exact(PuzzleItem, GuessItem, Same0-Diff0-Puzzle0, Same2-Diff2-Puzzle2) :-
+    (   PuzzleItem = GuessItem
+    ->  Same2 = [PuzzleItem|Same0],
+        Diff2 = Diff0,
+        select(GuessItem, Puzzle0, Puzzle2), !
+    ;   Same2 = Same0,
+        Diff2 = [GuessItem|Diff0],
+        Puzzle2 = Puzzle0
+    ).
+
+play_partial(GuessI-GuessItemValue, Result0-Puzzle0, [GuessI-Color|Result0]-Puzzle2) :-
+    (   select(I-GuessItemValue, Puzzle0, Puzzle2)
+    ->  assertion(I \= GuessI),
+        Color = r
+    ;   Color = b,
+        Puzzle2 = Puzzle0
+    ).
+
 :- det(get_dict_default/4).
 %! get_dict_default(+Key, +Dict:dict, +Default, -Value) is det.
 % Like get_dict(Key, Dict, Value), but unifying Value with Default
@@ -371,6 +409,11 @@ normalize_result(紫,    紅).
 normalize_result(黄,    紅).
 normalize_result(r,     紅).
 normalize_result(red,   紅).
+
+:- det(normalize_to_letter/2).
+normalize_to_letter(緑, g).
+normalize_to_letter(黒, b).
+normalize_to_letter(紅, r).
 
 %! nerdle_assertion(:Goal) is det.
 % The following is because optimisation can remove assertions.
