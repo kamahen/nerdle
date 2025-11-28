@@ -268,16 +268,21 @@ puzzle_fill(Puzzle) :-
 %! solution_score(+Puzzle:list(atom), +Guesses:list(list(atom)), -SolutionScore:int) is det.
 % Compute a score for the Puzzle results together with the list of
 % guesses. The score is negative, so that the lower negative number is
-% a higher score (this make sorting eaiser). In case of a tie, Prolog
+% a higher score (this make sorting easier). In case of a tie, Prolog
 % standard term ordering is used, which more-or-less results in terms
 % with lower digits coming first.
 solution_score(Puzzle, Guesses, SolutionScore) :-
+    % atom_chars(A_puzzle, Puzzle),
+    % maplist(atom_chars, A_guesses, Guesses),
     append(Guesses, GuessesCombined0),
     sort(GuessesCombined0, GuessesCombined),
-    foldl(score_label, Puzzle, GuessesCombined-0, _-SolutionScore).
+    foldl(score_label, Puzzle, GuessesCombined-0, _-SolutionScore),
+    true. % writeq(score(A_puzzle, A_guesses, SolutionScore)), nl.
 
-% Increase score for guessed labels that haven't already been seen
-% Slightly prefer more operators
+% Increase score for guessed labels that haven't already been seen.
+% Slightly prefer more operators.
+
+% TODO: change non-digit0(Label) to order + - * /
 
 score_label(Label, GuessesCombined-SolutionScore0, GS), memberchk(Label, GuessesCombined) =>
     score_label_seen(Label, GuessesCombined, SolutionScore0, GS).
